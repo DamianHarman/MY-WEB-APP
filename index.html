@@ -1537,15 +1537,19 @@ function runHand(numOpp) {
   const myScore = bestOf7([myCards[0], myCards[1], ...comm]);
 
   let result = 1;
+  let bestOppScore = null;
   for (const oh of oppHoles) {
     const os = bestOf7([oh[0], oh[1], ...comm]);
     const d = cmpScore(os, myScore);
-    if (d > 0)                 { result = -1; break; }
+    if (d > 0) {
+      if (!bestOppScore || cmpScore(os, bestOppScore) > 0) bestOppScore = os;
+      result = -1; break;
+    }
     if (d === 0 && result > 0)   result = 0;
   }
 
   if      (result ===  1) { wins++;   winHandCounts[myScore[0]]++;  }
-  else if (result === -1) { losses++; lossHandCounts[myScore[0]]++; }
+  else if (result === -1) { losses++; lossHandCounts[bestOppScore[0]]++; }
   else                      ties++;
 }
 
@@ -1573,7 +1577,7 @@ function runHandPickVs() {
 
   const d = cmpScore(myScore, oppScore);
   if      (d > 0) { wins++;   winHandCounts[myScore[0]]++;  }
-  else if (d < 0) { losses++; lossHandCounts[myScore[0]]++; }
+  else if (d < 0) { losses++; lossHandCounts[oppScore[0]]++; }
   else              ties++;
 }
 
