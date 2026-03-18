@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v24</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v25</p>
 
   <div class="panel">
 
@@ -1209,6 +1209,15 @@
   <p class="subtitle">Win / Loss Breakdown</p>
 
   <div class="panel">
+    <div class="section-lbl">Your hole cards</div>
+    <div class="cards-row" id="analysisCards"></div>
+    <div id="analysisOppCardsSection" style="display:none">
+      <div class="section-lbl" style="margin-top:14px">Opponent's hole cards</div>
+      <div class="cards-row" id="analysisOppCards"></div>
+    </div>
+
+    <hr class="div">
+
     <div id="analysisTabs" style="display:none;margin-bottom:16px">
       <div class="chip-group" style="justify-content:center">
         <button class="chip on" onclick="setAnalysisPhase(0,this)">1 Opp</button>
@@ -3060,6 +3069,16 @@ function boardPickerChanged() {
 
 // ─── Win/Loss Analysis ────────────────────────────────────────────────────────
 function showAnalysis() {
+  // Cards
+  renderCards('analysisCards', myCards);
+  const oppSec = document.getElementById('analysisOppCardsSection');
+  if (oppMode === 'specific' && oppCards.length === 2) {
+    renderCards('analysisOppCards', oppCards);
+    oppSec.style.display = 'block';
+  } else {
+    oppSec.style.display = 'none';
+  }
+
   const tabs = document.getElementById('analysisTabs');
   tabs.style.display = lastAnalysisPhases.length > 1 ? 'block' : 'none';
   document.querySelectorAll('#analysisTabs .chip').forEach((b, i) => b.classList.toggle('on', i === 0));
@@ -3077,7 +3096,26 @@ function renderAnalysisContent(idx) {
   const phase = lastAnalysisPhases[idx];
   if (!phase) { document.getElementById('analysisContent').innerHTML = ''; return; }
   const totalIter = phase.wins + phase.losses + phase.ties;
+  const winPct  = totalIter ? (phase.wins   / totalIter * 100).toFixed(1) : '0.0';
+  const lossPct = totalIter ? (phase.losses / totalIter * 100).toFixed(1) : '0.0';
+  const tiePct  = totalIter ? (phase.ties   / totalIter * 100).toFixed(1) : '0.0';
+  const summary =
+    `<div style="display:flex;justify-content:space-between;text-align:center;margin-bottom:16px;gap:8px">` +
+      `<div style="flex:1;background:var(--panel2);border-radius:10px;padding:10px 4px">` +
+        `<div style="font-size:1.4rem;font-weight:700;color:var(--win)">${winPct}%</div>` +
+        `<div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Wins</div>` +
+      `</div>` +
+      `<div style="flex:1;background:var(--panel2);border-radius:10px;padding:10px 4px">` +
+        `<div style="font-size:1.4rem;font-weight:700;color:var(--loss)">${lossPct}%</div>` +
+        `<div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Losses</div>` +
+      `</div>` +
+      `<div style="flex:1;background:var(--panel2);border-radius:10px;padding:10px 4px">` +
+        `<div style="font-size:1.4rem;font-weight:700;color:var(--gold)">${tiePct}%</div>` +
+        `<div style="font-size:0.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Ties</div>` +
+      `</div>` +
+    `</div>`;
   document.getElementById('analysisContent').innerHTML =
+    summary +
     renderHandBreakdown('Wins', phase.winHandCounts, phase.wins, totalIter) +
     '<hr class="div">' +
     renderHandBreakdown('Losses', phase.lossHandCounts, phase.losses, totalIter);
