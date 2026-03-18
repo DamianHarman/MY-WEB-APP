@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v23</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v24</p>
 
   <div class="panel">
 
@@ -3076,19 +3076,20 @@ function setAnalysisPhase(idx, btn) {
 function renderAnalysisContent(idx) {
   const phase = lastAnalysisPhases[idx];
   if (!phase) { document.getElementById('analysisContent').innerHTML = ''; return; }
+  const totalIter = phase.wins + phase.losses + phase.ties;
   document.getElementById('analysisContent').innerHTML =
-    renderHandBreakdown('Wins', phase.winHandCounts, phase.wins) +
+    renderHandBreakdown('Wins', phase.winHandCounts, phase.wins, totalIter) +
     '<hr class="div">' +
-    renderHandBreakdown('Losses', phase.lossHandCounts, phase.losses);
+    renderHandBreakdown('Losses', phase.lossHandCounts, phase.losses, totalIter);
 }
 
-function renderHandBreakdown(title, counts, total) {
+function renderHandBreakdown(title, counts, total, totalIter) {
   const isWin = title === 'Wins';
   const color = isWin ? 'var(--win)' : 'var(--loss)';
   let rows = '';
   for (let i = 8; i >= 0; i--) {
     if (!counts[i]) continue;
-    const pct = total ? counts[i] / total * 100 : 0;
+    const pct = totalIter ? counts[i] / totalIter * 100 : 0;
     rows +=
       `<div class="lb-chart-row">` +
         `<div style="width:116px;font-size:0.73rem;color:var(--text);flex-shrink:0;text-align:right;padding-right:8px">${HAND_NAMES[i]}</div>` +
