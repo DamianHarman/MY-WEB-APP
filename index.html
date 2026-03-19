@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v26</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v28</p>
 
   <div class="panel">
 
@@ -2078,7 +2078,9 @@ function renderHistory() {
     const c1 = h.cards[0], c2 = h.cards[1];
     const total = h.wins + h.losses + h.ties;
     const wr = total ? (h.wins / total * 100).toFixed(2) : '0.00';
-    return `<div class="hist-entry">
+    const wrNum = total ? h.wins / total : 0;
+    const bdrCol = wrNum >= 0.5 ? 'var(--win)' : 'var(--loss)';
+    return `<div class="hist-entry" style="border-left:3px solid ${bdrCol};cursor:pointer;padding-left:11px" onclick="loadHistEntry(${c1.rank},${c1.suit},${c2.rank},${c2.suit})" title="Tap to reload these cards">
       <div class="hist-cards">
         <span class="hist-card ${SUIT_COL[c1.suit]}">${RANK_SYM[c1.rank-2]}${SUIT_SYM[c1.suit]}</span>
         <span class="hist-card ${SUIT_COL[c2.suit]}">${RANK_SYM[c2.rank-2]}${SUIT_SYM[c2.suit]}</span>
@@ -2092,6 +2094,18 @@ function renderHistory() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ─── Load history entry into picker ───────────────────────────────────────────
+function loadHistEntry(r1, s1, r2, s2) {
+  document.getElementById('rank1').value = r1;
+  document.getElementById('suit1').value = s1;
+  document.getElementById('rank2').value = r2;
+  document.getElementById('suit2').value = s2;
+  showScreen('setupScreen');
+  const pickBtn = document.querySelector('#modeChips .chip:nth-child(2)');
+  setCardMode('pick', pickBtn);
+  window.scrollTo(0, 0);
 }
 
 // ─── Leaderboard ──────────────────────────────────────────────────────────────
@@ -3226,6 +3240,10 @@ let btlStartPos    = 'BTN';
 let btlStopFlag    = false;
 let btlHandNum     = 0;
 let btlDealerIdx   = 0;
+let btlStepMode    = false;
+let btlStepPhase   = 0;   // 1=preflop done, 2=flop done, 3=turn done, 4=river done, 5=showdown done
+let btlStepDealtIn = [];
+let btlStepSbIdx   = 0;
 let btlPlayers     = [];   // {name, chips, hole, inHand, action}
 let btlPlayerStats = [];   // {fold, check, call, raise, won, played}
 let btlComm        = [];   // 5 locked-in community cards
@@ -3492,6 +3510,129 @@ function btlAdaptStrategies(winnerSet) {
   });
 }
 
+// ── Step-by-step mode ─────────────────────────────────────────────────────────
+function setBtlStepMode(mode, el) {
+  btlStepMode = mode;
+  document.querySelectorAll('#btlStepModeChips .chip').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function btlBeginHandStep() {
+  btlHandNum++;
+  btlPot = 0;
+  btlPlayers.forEach((p, i) => {
+    p.inHand = p.chips > 0; p.action = ''; p.episode = [];
+    if (btlPlayerStats[i]) btlPlayerStats[i].raisedThisHand = false;
+  });
+  btlStepDealtIn = btlPlayers.map(p => p.inHand);
+  btlComm    = btlFixedComm;
+  btlVisible = 0;
+  const n        = btlPlayers.length;
+  btlStepSbIdx   = (btlDealerIdx + 1) % n;
+  const bbIdx    = (btlDealerIdx + 2) % n;
+  const utgIdx   = (btlDealerIdx + 3) % n;
+  btlLog(`── Hand ${btlHandNum} ──`);
+  const streetBets = {};
+  btlPlayers.forEach((_, i) => streetBets[i] = 0);
+  const sbP = btlPlayers[btlStepSbIdx], bbP = btlPlayers[bbIdx];
+  if (sbP && sbP.inHand) { const a = Math.min(BTL_SB, sbP.chips); sbP.chips -= a; streetBets[btlStepSbIdx] = a; btlPot += a; btlLog(`${sbP.name} posts SB ${a}`); }
+  if (bbP && bbP.inHand) { const a = Math.min(BTL_BB, bbP.chips); bbP.chips -= a; streetBets[bbIdx] = a; btlPot += a; btlLog(`${bbP.name} posts BB ${a}`); }
+  btlRunStreet(utgIdx, BTL_BB, streetBets, 0);
+  btlStepPhase = 1;
+}
+
+function btlDoShowdownStep() {
+  btlVisible = 5;
+  const active = btlPlayers.filter(p => p.inHand);
+  let handWinners = [];
+  if (active.length === 0) {
+    const dealt = btlPlayers.filter((_, i) => btlStepDealtIn[i]);
+    if (dealt.length) { dealt[0].chips += btlPot; handWinners = [dealt[0]]; }
+    btlLog(`All folded — pot returned`);
+  } else if (active.length === 1) {
+    active[0].chips += btlPot;
+    btlLog(`${active[0].name} wins $${btlPot} (uncontested)`);
+    handWinners = [active[0]];
+  } else {
+    const scored = active.map(p => ({ p, score: bestOf7([...p.hole, ...btlComm]) }));
+    let best = scored[0].score;
+    for (const s of scored) if (cmpScore(s.score, best) > 0) best = s.score;
+    const winners = scored.filter(s => cmpScore(s.score, best) === 0);
+    const share = Math.floor(btlPot / winners.length);
+    const rem   = btlPot - share * winners.length;
+    winners.forEach((w, i) => { w.p.chips += share + (i === 0 ? rem : 0); });
+    handWinners = winners.map(w => w.p);
+    btlLog(winners.length === 1
+      ? `${winners[0].p.name} wins $${btlPot} — ${BTL_HAND_NAMES[best[0]]}`
+      : `Split $${btlPot} (${winners.map(w => w.p.name).join('/')}) — ${BTL_HAND_NAMES[best[0]]}`);
+  }
+  btlPlayers.forEach((p, i) => { if (btlStepDealtIn[i]) btlPlayerStats[i].played++; });
+  handWinners.forEach(wp => { const i = btlPlayers.indexOf(wp); if (i >= 0) btlPlayerStats[i].won++; });
+  btlUpdateQTables();
+  btlAdaptStrategies(new Set(handWinners));
+  const n = btlPlayers.length;
+  for (let g = 0; g < n; g++) { btlDealerIdx = (btlDealerIdx + 1) % n; if (btlPlayers[btlDealerIdx].chips > 0) break; }
+  const _si = Math.max(1, Math.floor(btlTotalHands / 50));
+  if (btlHandNum % _si === 0) {
+    btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
+    const liveChart = document.getElementById('battleChipChart');
+    if (liveChart && btlChipHistory.length >= 2) liveChart.innerHTML = renderChipChart(btlChipHistory, btlPlayers);
+  }
+  btlStepPhase = 5;
+}
+
+function btlStepAdvance() {
+  const ac = () => btlPlayers.filter(p => p.inHand).length;
+  try {
+    if (btlStepPhase === 1) {
+      if (ac() > 1) { btlVisible = 3; btlLog('── Flop ──'); btlRunStreet(btlStepSbIdx, 0, {}, 1); }
+      btlStepPhase = ac() > 1 ? 2 : 4;
+    } else if (btlStepPhase === 2) {
+      if (ac() > 1) { btlVisible = 4; btlLog('── Turn ──'); btlRunStreet(btlStepSbIdx, 0, {}, 2); }
+      btlStepPhase = ac() > 1 ? 3 : 4;
+    } else if (btlStepPhase === 3) {
+      if (ac() > 1) { btlVisible = 5; btlLog('── River ──'); btlRunStreet(btlStepSbIdx, 0, {}, 3); }
+      btlStepPhase = 4;
+    } else if (btlStepPhase === 4) {
+      btlDoShowdownStep();
+    } else if (btlStepPhase === 5) {
+      if (btlStopFlag || btlHandNum >= btlTotalHands || btlPlayers.filter(p => p.chips > 0).length < 2) {
+        showBattleResults(); return;
+      }
+      btlBeginHandStep();
+    }
+  } catch(e) { btlLog(`ERR: ${e.message}`); btlStepPhase = 5; }
+  updateBattleUI();
+  updateStepBtn();
+}
+
+function btlFinishAll() {
+  // Drain any remaining streets of the current hand silently
+  const ac = () => btlPlayers.filter(p => p.inHand).length;
+  try {
+    if (btlStepPhase >= 1 && btlStepPhase <= 1 && ac() > 1) { btlVisible = 3; btlRunStreet(btlStepSbIdx, 0, {}, 1); }
+    if (btlStepPhase >= 1 && btlStepPhase <= 2 && ac() > 1) { btlVisible = 4; btlRunStreet(btlStepSbIdx, 0, {}, 2); }
+    if (btlStepPhase >= 1 && btlStepPhase <= 3 && ac() > 1) { btlVisible = 5; btlRunStreet(btlStepSbIdx, 0, {}, 3); }
+    if (btlStepPhase >= 1 && btlStepPhase <= 4) btlDoShowdownStep();
+  } catch(e) { btlLog(`ERR: ${e.message}`); }
+  btlStepMode = false;
+  document.getElementById('btlStepBtns').style.display = 'none';
+  document.getElementById('btlStopBtn').style.display  = '';
+  scheduleNextBattleHand();
+}
+
+function updateStepBtn() {
+  const btn = document.getElementById('btlNextBtn');
+  if (!btn) return;
+  const labels = {
+    1: 'SEE FLOP ▼', 2: 'SEE TURN ▼', 3: 'SEE RIVER ▼',
+    4: 'SHOWDOWN ▶',
+    5: btlHandNum >= btlTotalHands || btlPlayers.filter(p => p.chips > 0).length < 2
+       ? 'SEE RESULTS' : `NEXT HAND (${btlHandNum}/${btlTotalHands}) ▶`
+  };
+  btn.textContent = labels[btlStepPhase] || 'NEXT ▶';
+}
+
 function playBattleHand() {
   btlHandNum++;
   btlPot = 0;
@@ -3598,7 +3739,8 @@ function playBattleHand() {
 }
 
 function updateBattleUI() {
-  document.getElementById('battleHandNum').textContent = `Hand ${btlHandNum} / ${btlTotalHands}`;
+  document.getElementById('battleHandNum').textContent =
+    `Hand ${btlHandNum} / ${btlTotalHands}` + (btlStepMode && btlPot > 0 ? ` · Pot $${btlPot}` : '');
 
   // Community cards — always show all 5 (fixed for entire battle)
   const commEl = document.getElementById('battleCommCards');
@@ -3682,7 +3824,15 @@ function startBattle() {
   btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
 
   showScreen('battleRunScreen');
-  scheduleNextBattleHand();
+  if (btlStepMode) {
+    document.getElementById('btlStopBtn').style.display  = 'none';
+    document.getElementById('btlStepBtns').style.display = 'flex';
+    btlBeginHandStep();
+    updateBattleUI();
+    updateStepBtn();
+  } else {
+    scheduleNextBattleHand();
+  }
 }
 
 function repeatBattle() {
@@ -3704,7 +3854,15 @@ function repeatBattle() {
   btlDealerIdx    = (n - (posOffset[btlStartPos] ?? 0)) % n;
   btlChipHistory  = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
   showScreen('battleRunScreen');
-  scheduleNextBattleHand();
+  if (btlStepMode) {
+    document.getElementById('btlStopBtn').style.display  = 'none';
+    document.getElementById('btlStepBtns').style.display = 'flex';
+    btlBeginHandStep();
+    updateBattleUI();
+    updateStepBtn();
+  } else {
+    scheduleNextBattleHand();
+  }
 }
 
 function scheduleNextBattleHand() {
@@ -3715,13 +3873,17 @@ function scheduleNextBattleHand() {
       playBattleHand();
       updateBattleUI();
       const _si = Math.max(1, Math.floor(btlTotalHands / 50));
-      if (btlHandNum % _si === 0) btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
+      if (btlHandNum % _si === 0) {
+        btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
+        const liveChart = document.getElementById('battleChipChart');
+        if (liveChart && btlChipHistory.length >= 2) liveChart.innerHTML = renderChipChart(btlChipHistory, btlPlayers);
+      }
     } catch(e) {
       btlLog(`ERR hand ${btlHandNum}: ${e.message}`);
       updateBattleUI();
     }
     scheduleNextBattleHand();
-  }, 0);
+  }, 10);
 }
 
 function showH2HResults() {
@@ -4081,6 +4243,14 @@ function showBattleResults() {
     </div>
 
     <div class="form-group">
+      <label class="form-lbl">Pace</label>
+      <div class="chip-group" id="btlStepModeChips">
+        <button class="chip on" onclick="setBtlStepMode(false,this)">Auto</button>
+        <button class="chip"    onclick="setBtlStepMode(true,this)">Hand by Hand</button>
+      </div>
+    </div>
+
+    <div class="form-group">
       <label class="form-lbl">P1 starting position</label>
       <div class="chip-group" id="battlePosChips">
         <button class="chip on" onclick="setBattleStartPos('BTN',this)">BTN</button>
@@ -4131,9 +4301,11 @@ function showBattleResults() {
       </div>
     </div>
 
-    <div style="color:var(--muted);font-size:0.72rem;line-height:1.7;margin-bottom:18px">
-      Each player uses direct win evaluation per decision.<br>
-      Community cards are locked in at the start of each hand.
+    <button class="btn-outline" style="margin-bottom:18px;font-size:0.82rem;letter-spacing:1px" onclick="document.getElementById('btlHowItWorks').style.display=document.getElementById('btlHowItWorks').style.display==='none'?'block':'none'">HOW IT WORKS</button>
+    <div id="btlHowItWorks" style="display:none;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.82rem;line-height:1.75;color:var(--muted)">
+      <strong style="color:var(--text)">Cards are fixed for the entire battle.</strong> The same hole cards and the same 5 community cards are used for every hand — no card variance.<br><br>
+      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player's Q-table updates hand by hand based on wins and losses, so they gradually learn better fold / call / raise decisions for that specific board.<br><br>
+      The result: any chip movement is purely from strategic decisions, not luck.
     </div>
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
@@ -4149,7 +4321,7 @@ function showBattleResults() {
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <span id="battleHandNum" style="font-size:0.9rem;font-weight:700;color:var(--gold);letter-spacing:1px">Hand 0 / 100</span>
-      <button class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="stopBattle()">STOP</button>
+      <button id="btlStopBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="stopBattle()">STOP</button>
     </div>
 
     <div class="section-lbl">Fixed Community Cards</div>
@@ -4161,6 +4333,11 @@ function showBattleResults() {
 
     <div style="color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Action Log</div>
     <div id="battleLog" style="font-size:0.72rem;color:var(--muted);line-height:1.8;max-height:120px;overflow-y:auto;font-family:monospace;background:var(--panel2);padding:8px 10px;border-radius:8px"></div>
+    <div id="battleChipChart" style="margin-top:10px"></div>
+    <div id="btlStepBtns" style="display:none;gap:10px;margin-top:14px">
+      <button id="btlNextBtn" class="btn btn-gold" style="flex:1;min-height:50px" onclick="btlStepAdvance()">NEXT ▶</button>
+      <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:14px 18px;min-height:50px" onclick="btlFinishAll()">FINISH ALL</button>
+    </div>
   </div>
 </div>
 
