@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v25</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v26</p>
 
   <div class="panel">
 
@@ -1290,7 +1290,10 @@
         <button class="chip on" onclick="switchMatrix2Tab(1,this)">1 Opp</button>
         <button class="chip"    onclick="switchMatrix2Tab(2,this)">2 Opps</button>
         <button class="chip"    onclick="switchMatrix2Tab(3,this)">3 Opps</button>
+        <button class="chip"    onclick="switchMatrix2Tab(4,this)">4 Opps~</button>
+        <button class="chip"    onclick="switchMatrix2Tab(6,this)">6 Opps~</button>
       </div>
+      <div id="lbMatrix2ScaleNote" style="display:none;font-size:0.62rem;color:var(--muted);margin-bottom:8px">~ Estimated by scaling from 1-opponent data</div>
       <div class="lb-matrix-wrap">
         <div id="lbMatrix2"></div>
       </div>
@@ -2378,6 +2381,7 @@ function switchMatrix2Tab(n, btn) {
   matrix2Tab = n;
   document.querySelectorAll('#lbMatrix2Tabs .chip').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
+  document.getElementById('lbMatrix2ScaleNote').style.display = (n === 4 || n === 6) ? 'block' : 'none';
   renderMatrix2();
 }
 
@@ -2402,9 +2406,22 @@ function m2Tc(rate) { return m2Band(rate).tc; }
 function m2Solid(rate) { return m2Band(rate).solid; }
 
 function renderMatrix2() {
-  const lb      = computeLeaderboard(matrix2Tab);
   const rateMap = {};
-  for (const e of lb) rateMap[pairKey(e.cards[0], e.cards[1])] = e.winRate;
+  if (matrix2Tab === 4 || matrix2Tab === 6) {
+    const si = matrix2Tab === 4 ? 2 : 3; // scale index: [vs1, vs2, vs4, vs6]
+    for (const e of computeLeaderboard(1)) {
+      const isPair = e.cards[0].rank === e.cards[1].rank;
+      const wr     = e.winRate;
+      const scales = isPair      ? [1.0, 0.86, 0.68, 0.56] :
+                     wr >= 0.60  ? [1.0, 0.82, 0.64, 0.53] :
+                     wr >= 0.50  ? [1.0, 0.77, 0.58, 0.47] :
+                                   [1.0, 0.72, 0.50, 0.40];
+      rateMap[pairKey(e.cards[0], e.cards[1])] = wr * scales[si];
+    }
+  } else {
+    for (const e of computeLeaderboard(matrix2Tab))
+      rateMap[pairKey(e.cards[0], e.cards[1])] = e.winRate;
+  }
 
   const ranks   = [14,13,12,11,10,9,8,7,6,5,4,3,2];
   const rankSym = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
@@ -3193,6 +3210,7 @@ initSeedData();
 // ─── AI Battle ────────────────────────────────────────────────────────────────
 
 let btlNumPlayers  = 4;
+let btlMode        = 'battle'; // 'battle' | 'h2h'
 let btlSavedHoles  = [];  // hole cards from last battle, for repeat
 let btlFixedComm   = [];  // fixed community cards for entire battle
 let btlP1CardMode  = 'random'; // 'random' | 'pick'
@@ -3214,6 +3232,7 @@ let btlComm        = [];   // 5 locked-in community cards
 let btlPot         = 0;
 let btlVisible     = 0;    // how many community cards shown in UI
 let btlLogLines    = [];
+let btlChipHistory = []; // [{hand, chips:[]}]
 
 const BTL_START    = 1000;
 const BTL_SB       = 10;
@@ -3226,6 +3245,19 @@ function setBattlePlayers(n, el) {
   btlNumPlayers = n;
   document.querySelectorAll('#battlePlayerChips .chip').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
+}
+
+function setBtlMode(mode, el) {
+  btlMode = mode;
+  document.querySelectorAll('#btlModeChips .chip').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  const pg = document.getElementById('btlPlayersGroup');
+  if (mode === 'h2h') {
+    btlNumPlayers = 2;
+    pg.style.display = 'none';
+  } else {
+    pg.style.display = '';
+  }
 }
 
 function setBattleStartPos(pos, el) {
@@ -3646,7 +3678,8 @@ function startBattle() {
     p.hole = i === 0 && p1Hole ? p1Hole : [holeDeck[hTop++], holeDeck[hTop++]];
   });
   btlFixedComm  = [holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++]];
-  btlSavedHoles = btlPlayers.map(p => [...p.hole]); // save for repeat
+  btlSavedHoles  = btlPlayers.map(p => [...p.hole]); // save for repeat
+  btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
 
   showScreen('battleRunScreen');
   scheduleNextBattleHand();
@@ -3668,7 +3701,8 @@ function repeatBattle() {
   // btlFixedComm already set from previous startBattle — reuse same community cards
   const n = btlNumPlayers;
   const posOffset = { BTN: 0, SB: 1, BB: 2, UTG: 3, CO: Math.max(n - 1, 1) };
-  btlDealerIdx = (n - (posOffset[btlStartPos] ?? 0)) % n;
+  btlDealerIdx    = (n - (posOffset[btlStartPos] ?? 0)) % n;
+  btlChipHistory  = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
   showScreen('battleRunScreen');
   scheduleNextBattleHand();
 }
@@ -3680,6 +3714,8 @@ function scheduleNextBattleHand() {
     try {
       playBattleHand();
       updateBattleUI();
+      const _si = Math.max(1, Math.floor(btlTotalHands / 50));
+      if (btlHandNum % _si === 0) btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
     } catch(e) {
       btlLog(`ERR hand ${btlHandNum}: ${e.message}`);
       updateBattleUI();
@@ -3688,7 +3724,188 @@ function scheduleNextBattleHand() {
   }, 0);
 }
 
+function showH2HResults() {
+  const p1 = btlPlayers[0], p2 = btlPlayers[1];
+  const s1 = btlPlayerStats[0] || {}, s2 = btlPlayerStats[1] || {};
+  const winner = p1.chips >= p2.chips ? p1 : p2;
+  const loser  = winner === p1 ? p2 : p1;
+  const wIdx   = winner === p1 ? 0 : 1;
+  const lIdx   = 1 - wIdx;
+  const wSt    = wIdx === 0 ? s1 : s2;
+  const lSt    = wIdx === 0 ? s2 : s1;
+  const tied   = p1.chips === p2.chips;
+
+  const cardHtml = (hole) => hole.length === 2 ? hole.map(c => {
+    const r = RANK_SYM[c.rank - 2], s = SUIT_SYM[c.suit], col = SUIT_COL[c.suit];
+    return `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;` +
+           `width:36px;height:52px;background:#fff;border-radius:5px;font-size:0.75rem;font-weight:800;` +
+           `color:${col==='red'?'#c00':'#111'};line-height:1.1;box-shadow:0 2px 8px rgba(0,0,0,0.5)">` +
+           `${r}<span style="font-size:0.8rem">${s}</span></span>`;
+  }).join('') : '';
+
+  const playerCol = (p, st, isWinner) => {
+    const delta    = p.chips - BTL_START;
+    const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+    const deltaCol = delta >= 0 ? 'var(--win)' : 'var(--loss)';
+    const total    = (st.fold||0)+(st.check||0)+(st.call||0)+(st.raise||0);
+    const pct      = n => total > 0 ? Math.round(n/total*100) : 0;
+    const winPct   = st.played > 0 ? Math.round(st.won/st.played*100) : 0;
+    return `<div style="flex:1;text-align:center;padding:12px 8px;background:${isWinner?'rgba(240,192,64,0.07)':'var(--panel2)'};` +
+           `border-radius:10px;border:1px solid ${isWinner?'var(--gold)':'var(--border)'}">` +
+      `<div style="font-size:0.75rem;font-weight:700;color:${isWinner?'var(--gold)':'var(--muted)'};letter-spacing:2px;margin-bottom:6px">${p.name}${isWinner?' ★':''}</div>` +
+      `<div style="display:flex;gap:4px;justify-content:center;margin-bottom:8px">${cardHtml(p.hole)}</div>` +
+      `<div style="font-size:1.3rem;font-weight:800;color:var(--gold)">${p.chips}</div>` +
+      `<div style="font-size:0.82rem;font-weight:700;color:${deltaCol};margin-bottom:8px">${deltaStr}</div>` +
+      `<div style="font-size:0.68rem;color:var(--muted);line-height:1.8">` +
+        `<span style="color:var(--loss)">F</span> ${pct(st.fold||0)}% &nbsp;` +
+        `<span style="color:var(--muted)">K</span> ${pct(st.check||0)}% &nbsp;` +
+        `<span style="color:var(--win)">C</span> ${pct(st.call||0)}% &nbsp;` +
+        `<span style="color:var(--gold)">R</span> ${pct(st.raise||0)}%<br>` +
+        `ε <b style="color:var(--text)">${(st.epsilon||0).toFixed(3)}</b> &nbsp;` +
+        `raise× <b style="color:var(--text)">${(st.raiseMult||0).toFixed(2)}</b><br>` +
+        `Won ${winPct}% of ${st.played||0} hands` +
+      `</div>` +
+    `</div>`;
+  };
+
+  // Community cards
+  const commHtml = btlFixedComm.map(c => {
+    const r = RANK_SYM[c.rank - 2], s = SUIT_SYM[c.suit], col = SUIT_COL[c.suit];
+    return `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:32px;height:46px;background:#fff;border-radius:5px;font-size:0.68rem;font-weight:800;color:${col==='red'?'#c00':'#111'};line-height:1.1;box-shadow:0 2px 8px rgba(0,0,0,0.5)">${r}<span style="font-size:0.75rem">${s}</span></span>`;
+  }).join('');
+
+  const STREET_NM = ['Pre-flop', 'Flop', 'Turn', 'River'];
+  const STR_NM    = ['Weak', 'Fair', 'Med', 'Good', 'Strong'];
+  const ACT_LBLS  = ['F', 'C', 'R'];
+  const ACT_COLS  = ['var(--loss)', 'var(--win)', 'var(--gold)'];
+
+  const stratGrid = (st, pName, pCol) => {
+    const potCell = (si, sb, pb) => {
+      const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
+      const qs   = [st.qtable[base], st.qtable[base+1], st.qtable[base+2]];
+      if (qs.every(q => Math.abs(q) < 0.0001)) return `<span style="color:var(--muted)">·</span>`;
+      const best = qs.indexOf(Math.max(...qs));
+      return `<span style="color:${ACT_COLS[best]};font-weight:700">${ACT_LBLS[best]}</span>`;
+    };
+    let g = `<div style="color:${pCol};font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">${pName} · Learned Strategy</div>` +
+      `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem">` +
+      `<thead><tr><th style="text-align:left;color:var(--muted);font-weight:400;padding:3px 6px 6px 0;min-width:60px"></th>`;
+    STR_NM.forEach(s => { g += `<th style="text-align:center;color:var(--muted);font-weight:400;padding:3px 4px 6px">${s}</th>`; });
+    g += `</tr></thead><tbody>`;
+    STREET_NM.forEach((street, si) => {
+      g += `<tr style="border-top:1px solid var(--border)">`;
+      g += `<td style="color:var(--text);padding:6px 6px 6px 0;font-weight:600;white-space:nowrap">${street}</td>`;
+      for (let sb = 0; sb < 5; sb++) {
+        g += `<td style="text-align:center;padding:6px 4px;letter-spacing:1px">` +
+          potCell(si, sb, 0) + `<span style="color:var(--muted)"> · </span>` +
+          potCell(si, sb, 1) + `<span style="color:var(--muted)"> · </span>` +
+          potCell(si, sb, 2) + `</td>`;
+      }
+      g += `</tr>`;
+    });
+    g += `</tbody></table></div>`;
+    return g;
+  };
+
+  let html =
+    // Winner banner
+    `<div style="text-align:center;margin-bottom:20px">` +
+      `<div style="font-size:${tied?'1.4rem':'2rem'};font-weight:800;color:${tied?'var(--muted)':'var(--gold)'};letter-spacing:3px">` +
+        `${tied ? 'TIE GAME' : winner.name + ' WINS'}` +
+      `</div>` +
+      `<div style="font-size:0.72rem;color:var(--muted);letter-spacing:2px;margin-top:4px">${btlHandNum} hands played</div>` +
+    `</div>` +
+
+    // P1 vs P2 comparison
+    `<div style="display:flex;gap:10px;margin-bottom:16px">` +
+      playerCol(p1, s1, p1.chips > p2.chips) +
+      `<div style="display:flex;align-items:center;font-size:1rem;font-weight:800;color:var(--muted);padding:0 4px">VS</div>` +
+      playerCol(p2, s2, p2.chips > p1.chips) +
+    `</div>` +
+
+    // Board
+    `<div style="text-align:center;margin-bottom:16px">` +
+      `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Board</div>` +
+      `<div style="display:flex;justify-content:center;gap:5px">${commHtml}</div>` +
+    `</div>` +
+
+    // Chip evolution chart
+    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Chip Evolution</div>` +
+    `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
+    renderChipChart(btlChipHistory, btlPlayers) +
+
+    // Both learned strategies
+    `<hr class="div" style="margin:18px 0">` +
+    stratGrid(s1, 'P1', '#f0c040') +
+    `<hr class="div" style="margin:14px 0">` +
+    stratGrid(s2, 'P2', '#4caf50') +
+    `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
+
+  document.getElementById('battleResultBody').innerHTML = html;
+  document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
+  document.getElementById('battleResultSubtitle').textContent = 'Head to Head · Results';
+  showScreen('battleResultScreen');
+}
+
+function renderChipChart(history, players) {
+  if (history.length < 2) return '';
+  const W = 480, H = 160;
+  const PAD = { t: 12, r: 12, b: 26, l: 46 };
+  const IW = W - PAD.l - PAD.r;
+  const IH = H - PAD.t - PAD.b;
+  const n  = history.length;
+  const allChips = history.flatMap(s => s.chips);
+  const maxV = Math.max(...allChips, BTL_START);
+  const COLS = ['#f0c040','#4caf50','#64b5f6','#ff8a65','#ba68c8','#4db6ac'];
+  const xS = i  => PAD.l + (i / (n - 1)) * IW;
+  const yS = v  => PAD.t + IH - Math.min(v, maxV) / maxV * IH;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;margin-top:10px">`;
+
+  // Background
+  svg += `<rect x="${PAD.l}" y="${PAD.t}" width="${IW}" height="${IH}" fill="#172217" rx="4"/>`;
+
+  // Horizontal grid lines (0, BTL_START, max)
+  const gridVals = [0, BTL_START, maxV];
+  gridVals.forEach(v => {
+    const y = yS(v).toFixed(1);
+    svg += `<line x1="${PAD.l}" y1="${y}" x2="${PAD.l + IW}" y2="${y}" stroke="#2e4a2e" stroke-width="1" stroke-dasharray="${v === BTL_START ? '4,3' : ''}"/>`;
+    svg += `<text x="${PAD.l - 4}" y="${+y + 4}" text-anchor="end" fill="#556655" font-size="9" font-family="monospace">${v}</text>`;
+  });
+
+  // Axes
+  svg += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t + IH}" stroke="#3a503a" stroke-width="1"/>`;
+  svg += `<line x1="${PAD.l}" y1="${PAD.t + IH}" x2="${PAD.l + IW}" y2="${PAD.t + IH}" stroke="#3a503a" stroke-width="1"/>`;
+
+  // X-axis labels (4 ticks)
+  for (let ti = 0; ti <= 4; ti++) {
+    const idx = Math.round((ti / 4) * (n - 1));
+    const hnd = history[idx].hand;
+    svg += `<text x="${xS(idx).toFixed(1)}" y="${PAD.t + IH + 16}" text-anchor="middle" fill="#556655" font-size="9" font-family="monospace">${hnd}</text>`;
+  }
+
+  // Player lines
+  players.forEach((p, pi) => {
+    const col = COLS[pi % COLS.length];
+    const pts = history.map((s, i) => `${xS(i).toFixed(1)},${yS(s.chips[pi] || 0).toFixed(1)}`).join(' ');
+    svg += `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${pi === 0 ? 2.2 : 1.6}" stroke-linejoin="round" stroke-linecap="round" opacity="${pi === 0 ? 1 : 0.75}"/>`;
+  });
+
+  // Legend
+  players.forEach((p, pi) => {
+    const lx = PAD.l + 6 + pi * 52;
+    if (lx + 46 > PAD.l + IW) return;
+    const col = COLS[pi % COLS.length];
+    svg += `<rect x="${lx}" y="${PAD.t + 4}" width="12" height="3" fill="${col}" rx="1"/>`;
+    svg += `<text x="${lx + 16}" y="${PAD.t + 9}" fill="${col}" font-size="8.5" font-family="sans-serif" font-weight="700">${p.name}</text>`;
+  });
+
+  svg += `</svg>`;
+  return svg;
+}
+
 function showBattleResults() {
+  if (btlMode === 'h2h') { showH2HResults(); return; }
   const sorted = [...btlPlayers].sort((a, b) => b.chips - a.chips);
 
   // Community cards
@@ -3740,6 +3957,13 @@ function showBattleResults() {
   const winPct  = st.played > 0 ? Math.round(st.won / st.played * 100) : 0;
 
   const winnerLog = btlLogLines.filter(l => l.includes(winner.name)).slice(-20);
+
+  // Chip evolution chart
+  html +=
+    `<hr class="div" style="margin:18px 0">` +
+    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Chip Evolution</div>` +
+    `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
+    renderChipChart(btlChipHistory, btlPlayers);
 
   html +=
     `<hr class="div" style="margin:18px 0">` +
@@ -3810,6 +4034,7 @@ function showBattleResults() {
 
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
+  document.getElementById('battleResultSubtitle').textContent = 'AI Battle · Results';
   showScreen('battleResultScreen');
 }
 
@@ -3828,6 +4053,14 @@ function showBattleResults() {
     </div>
 
     <div class="form-group">
+      <label class="form-lbl">Mode</label>
+      <div class="chip-group" id="btlModeChips">
+        <button class="chip on" onclick="setBtlMode('battle',this)">Battle</button>
+        <button class="chip"    onclick="setBtlMode('h2h',this)">Head to Head</button>
+      </div>
+    </div>
+
+    <div class="form-group" id="btlPlayersGroup">
       <label class="form-lbl">Players</label>
       <div class="chip-group" id="battlePlayerChips">
         <button class="chip"    onclick="setBattlePlayers(2,this)">2</button>
@@ -3934,7 +4167,7 @@ function showBattleResults() {
 <!-- ── AI Battle Results ──────────────────────────────────────────────────── -->
 <div id="battleResultScreen" class="screen">
   <h1>POKER SIM</h1>
-  <p class="subtitle">AI Battle · Results</p>
+  <p class="subtitle" id="battleResultSubtitle">AI Battle · Results</p>
 
   <div class="panel">
     <div id="battleResultBody"></div>
