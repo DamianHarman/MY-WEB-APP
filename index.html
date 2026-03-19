@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v28</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v29</p>
 
   <div class="panel">
 
@@ -3236,6 +3236,7 @@ function setBtlP1CardMode(mode, el) {
   document.getElementById('btlP1Picker').style.display = mode === 'pick' ? 'block' : 'none';
 }
 let btlTotalHands  = 100;
+let btlGeneration  = 0;
 let btlStartPos    = 'BTN';
 let btlStopFlag    = false;
 let btlHandNum     = 0;
@@ -3740,7 +3741,9 @@ function playBattleHand() {
 
 function updateBattleUI() {
   document.getElementById('battleHandNum').textContent =
-    `Hand ${btlHandNum} / ${btlTotalHands}` + (btlStepMode && btlPot > 0 ? ` · Pot $${btlPot}` : '');
+    `Hand ${btlHandNum} / ${btlTotalHands}` +
+    (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') +
+    (btlStepMode && btlPot > 0 ? ` · Pot $${btlPot}` : '');
 
   // Community cards — always show all 5 (fixed for entire battle)
   const commEl = document.getElementById('battleCommCards');
@@ -3786,6 +3789,7 @@ function updateBattleUI() {
 }
 
 function startBattle() {
+  btlGeneration  = 0;
   btlStopFlag    = false;
   btlHandNum     = 0;
   btlLogLines    = [];
@@ -3863,6 +3867,33 @@ function repeatBattle() {
   } else {
     scheduleNextBattleHand();
   }
+}
+
+function continueBattle() {
+  btlGeneration++;
+  btlStopFlag   = false;
+  btlHandNum    = 0;
+  btlLogLines   = [];
+  btlPlayers.forEach(p => {
+    p.chips   = BTL_START;
+    p.inHand  = false;
+    p.action  = '';
+    p.episode = [];
+  });
+  btlPlayerStats.forEach(st => {
+    st.fold = 0; st.check = 0; st.call = 0; st.raise = 0;
+    st.won = 0; st.played = 0;
+    st.prevChips = BTL_START;
+    st.raisedThisHand = false;
+    st.lastRaiseAmt = 0;
+    // qtable, epsilon, raiseMult intentionally preserved
+  });
+  const n = btlNumPlayers;
+  const posOffset = { BTN: 0, SB: 1, BB: 2, UTG: 3, CO: Math.max(n - 1, 1) };
+  btlDealerIdx   = (n - (posOffset[btlStartPos] ?? 0)) % n;
+  btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
+  showScreen('battleRunScreen');
+  scheduleNextBattleHand();
 }
 
 function scheduleNextBattleHand() {
@@ -4005,7 +4036,11 @@ function showH2HResults() {
 
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
-  document.getElementById('battleResultSubtitle').textContent = 'Head to Head · Results';
+  const clBtn = document.getElementById('continueLearningBtn');
+  clBtn.style.display = '';
+  clBtn.textContent = `CONTINUE LEARNING (Gen ${btlGeneration + 2})`;
+  document.getElementById('battleResultSubtitle').textContent =
+    'Head to Head · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '');
   showScreen('battleResultScreen');
 }
 
@@ -4196,7 +4231,11 @@ function showBattleResults() {
 
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
-  document.getElementById('battleResultSubtitle').textContent = 'AI Battle · Results';
+  const clBtn2 = document.getElementById('continueLearningBtn');
+  clBtn2.style.display = '';
+  clBtn2.textContent = `CONTINUE LEARNING (Gen ${btlGeneration + 2})`;
+  document.getElementById('battleResultSubtitle').textContent =
+    'AI Battle · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '');
   showScreen('battleResultScreen');
 }
 
@@ -4239,6 +4278,9 @@ function showBattleResults() {
         <button class="chip"    onclick="setBattleHands(50,this)">50</button>
         <button class="chip on" onclick="setBattleHands(100,this)">100</button>
         <button class="chip"    onclick="setBattleHands(500,this)">500</button>
+        <button class="chip"    onclick="setBattleHands(1000,this)">1K</button>
+        <button class="chip"    onclick="setBattleHands(5000,this)">5K</button>
+        <button class="chip"    onclick="setBattleHands(10000,this)">10K</button>
       </div>
     </div>
 
@@ -4304,8 +4346,9 @@ function showBattleResults() {
     <button class="btn-outline" style="margin-bottom:18px;font-size:0.82rem;letter-spacing:1px" onclick="document.getElementById('btlHowItWorks').style.display=document.getElementById('btlHowItWorks').style.display==='none'?'block':'none'">HOW IT WORKS</button>
     <div id="btlHowItWorks" style="display:none;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.82rem;line-height:1.75;color:var(--muted)">
       <strong style="color:var(--text)">Cards are fixed for the entire battle.</strong> The same hole cards and the same 5 community cards are used for every hand — no card variance.<br><br>
-      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player's Q-table updates hand by hand based on wins and losses, so they gradually learn better fold / call / raise decisions for that specific board.<br><br>
-      The result: any chip movement is purely from strategic decisions, not luck.
+      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually learn better fold / call / raise decisions for that specific board. Any chip movement is purely from strategy, not luck.<br><br>
+      <strong style="color:var(--text)">To find the ultimate winning strategy</strong>, run 10K hands then hit <em>Continue Learning</em> in the results. Strategies carry over between generations — only chips reset. Repeat until ε drops to ~0.05 (shown in results), which means players have stopped exploring and are playing their fully learned strategy.<br><br>
+      The final strategy heatmap in the results shows each player's converged fold / call / raise decisions across every hand strength and pot size combination.
     </div>
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
@@ -4348,8 +4391,9 @@ function showBattleResults() {
 
   <div class="panel">
     <div id="battleResultBody"></div>
-    <button class="btn btn-gold"     style="margin-top:20px" onclick="showScreen('battleSetupScreen')">PLAY AGAIN</button>
-    <button class="btn btn-outline"  style="margin-top:10px" onclick="goSetup()">MAIN MENU</button>
+    <button class="btn btn-gold"     style="margin-top:20px"  onclick="showScreen('battleSetupScreen')">PLAY AGAIN</button>
+    <button class="btn btn-outline"  id="continueLearningBtn" style="margin-top:10px;display:none" onclick="continueBattle()">CONTINUE LEARNING</button>
+    <button class="btn btn-outline"  style="margin-top:10px"  onclick="goSetup()">MAIN MENU</button>
   </div>
 </div>
 
