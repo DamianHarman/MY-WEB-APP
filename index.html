@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v31</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v32</p>
 
   <div class="panel">
 
@@ -1084,7 +1084,6 @@
     <button class="btn btn-outline" style="margin-top:10px" onclick="quickSim()">QUICK SIM · 100K</button>
     <button class="btn btn-outline" style="margin-top:10px" onclick="startGuide()">HAND PLAY GUIDE</button>
     <button class="btn btn-outline" style="margin-top:10px" onclick="showScreen('battleSetupScreen')">AI BATTLE</button>
-    <button class="btn btn-outline" id="sweepBtn" style="display:none; margin-top:10px" onclick="startSweep()">RUN ALL ♠+♥ COMBOS</button>
   </div>
 </div>
 
@@ -1187,7 +1186,7 @@
     <div id="lbRank" style="display:none;text-align:center;color:var(--gold);font-size:0.78rem;font-weight:700;letter-spacing:1px;margin:14px 0 4px;line-height:1.7"></div>
 
     <div class="btn-row">
-      <button class="btn btn-gold"  onclick="goSetup()">RUN AGAIN</button>
+      <button class="btn btn-gold"  onclick="goSetup()">BACK / RUN AGAIN</button>
       <button class="btn-outline"   onclick="copyResult()">COPY</button>
       <button class="btn-outline"   onclick="showLeaderboard()">LEADERBOARD</button>
       <button class="btn-outline"   onclick="showAnalysis()">WIN/LOSS ANALYSIS</button>
@@ -1621,7 +1620,6 @@ function setCardMode(mode, btn) {
   const area = document.getElementById('pickerArea');
   const lbl  = document.getElementById('playerPickerLbl');
   const opp  = document.getElementById('oppPickerSection');
-  document.getElementById('sweepBtn').style.display = (mode === 'pick') ? 'block' : 'none';
   if (mode === 'pick') {
     area.classList.add('visible');
     lbl.style.display = 'none';
@@ -3573,7 +3571,6 @@ function btlDoShowdownStep() {
   btlUpdateQTables();
   btlAdaptStrategies(new Set(handWinners));
   const n = btlPlayers.length;
-  for (let g = 0; g < n; g++) { btlDealerIdx = (btlDealerIdx + 1) % n; if (btlPlayers[btlDealerIdx].chips > 0) break; }
   const _si = Math.max(1, Math.floor(btlTotalHands / 50));
   if (btlHandNum % _si === 0) {
     btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
@@ -3733,11 +3730,6 @@ function playBattleHand() {
   btlUpdateQTables();
   btlAdaptStrategies(new Set(handWinners));
 
-  // Advance dealer to next player with chips (guard against all-bust edge case)
-  for (let guard = 0; guard < n; guard++) {
-    btlDealerIdx = (btlDealerIdx + 1) % n;
-    if (btlPlayers[btlDealerIdx].chips > 0) break;
-  }
 }
 
 function updateBattleUI() {
@@ -3928,13 +3920,212 @@ function scheduleNextBattleHand() {
         btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
         const liveChart = document.getElementById('battleChipChart');
         if (liveChart && btlChipHistory.length >= 2) liveChart.innerHTML = renderChipChart(btlChipHistory, btlPlayers);
+        renderLiveStrategy();
       }
     } catch(e) {
       btlLog(`ERR hand ${btlHandNum}: ${e.message}`);
       updateBattleUI();
     }
     scheduleNextBattleHand();
-  }, 10);
+  }, 50);
+}
+
+function renderLiveStrategy() {
+  const el = document.getElementById('battleLiveStrategy');
+  if (!el) return;
+
+  const ACT_LBLS = ['F', 'C', 'R'];
+  const ACT_COLS = ['var(--loss)', 'var(--win)', 'var(--gold)'];
+  const STREETS  = ['Pre', 'Flop', 'Turn', 'Rvr'];
+  const STRENGTHS = ['Wk', 'Fr', 'Md', 'Gd', 'St'];
+
+  const getMaj = (qt, si, sb) => {
+    const counts = [0, 0, 0];
+    for (let pb = 0; pb < 3; pb++) {
+      const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
+      const qs = [qt[base], qt[base+1], qt[base+2]];
+      if (qs.every(q => Math.abs(q) < 0.0001)) continue;
+      counts[qs.indexOf(Math.max(...qs))]++;
+    }
+    const total = counts[0] + counts[1] + counts[2];
+    if (total === 0) return -1;
+    return counts.indexOf(Math.max(...counts));
+  };
+
+  const renderPlayerGrid = (p, pi) => {
+    const st = btlPlayerStats[pi];
+    if (!st || !st.qtable) return '';
+    const eliminated = p.chips <= 0;
+    const pCol = eliminated ? 'var(--muted)' : BTL_COLS[pi % BTL_COLS.length];
+    let g = `<div style="text-align:center;flex-shrink:0;opacity:${eliminated ? 0.35 : 1}">` +
+      `<div style="font-size:0.62rem;color:${pCol};font-weight:700;letter-spacing:1px;margin-bottom:4px">${p.name} <span style="color:var(--muted);font-weight:400">ε${(st.epsilon||0).toFixed(2)}</span></div>` +
+      `<table style="border-collapse:collapse;font-size:0.58rem;margin:0 auto"><thead><tr><th></th>`;
+    STRENGTHS.forEach(s => {
+      g += `<th style="text-align:center;color:var(--muted);font-weight:400;padding:0 3px 3px;min-width:16px">${s}</th>`;
+    });
+    g += `</tr></thead><tbody>`;
+    STREETS.forEach((street, si) => {
+      g += `<tr><td style="color:var(--muted);font-size:0.56rem;padding-right:5px;white-space:nowrap">${street}</td>`;
+      for (let sb = 0; sb < 5; sb++) {
+        const a = getMaj(st.qtable, si, sb);
+        g += `<td style="text-align:center;padding:1px 3px">` +
+          (a < 0 ? `<span style="color:#3a503a">·</span>` : `<span style="color:${ACT_COLS[a]};font-weight:700">${ACT_LBLS[a]}</span>`) +
+          `</td>`;
+      }
+      g += `</tr>`;
+    });
+    g += `</tbody></table></div>`;
+    return g;
+  };
+
+  const rowStyle = `display:flex;gap:14px;justify-content:center;margin-bottom:10px`;
+  let html = `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;text-align:center">Live Strategy</div>`;
+
+  if (btlPlayers.length <= 4) {
+    html += `<div style="${rowStyle}">`;
+    btlPlayers.forEach((p, pi) => { html += renderPlayerGrid(p, pi); });
+    html += `</div>`;
+  } else {
+    const row1 = btlPlayers.slice(0, 4);
+    const row2 = btlPlayers.slice(4);
+    html += `<div style="${rowStyle}">`;
+    row1.forEach((p, pi) => { html += renderPlayerGrid(p, pi); });
+    html += `</div><div style="${rowStyle}">`;
+    row2.forEach((p, pi) => { html += renderPlayerGrid(p, pi + 4); });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function stratSummary(st, pName, pCol, handsCtx) {
+  if (!st || !st.qtable) return '';
+  const qt = st.qtable;
+  const getBest = (si, sb, pb) => {
+    const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
+    const qs = [qt[base], qt[base+1], qt[base+2]];
+    if (qs.every(q => Math.abs(q) < 0.0001)) return -1;
+    return qs.indexOf(Math.max(...qs));
+  };
+
+  let total = 0, folds = 0, calls = 0, raises = 0;
+  for (let si = 0; si < 4; si++)
+    for (let sb = 0; sb < 5; sb++)
+      for (let pb = 0; pb < 3; pb++) {
+        const a = getBest(si, sb, pb);
+        if (a < 0) continue;
+        total++;
+        if (a === 0) folds++;
+        else if (a === 1) calls++;
+        else raises++;
+      }
+  if (total < 5) return '';
+
+  const insights = [];
+  const rPct = raises / total, fPct = folds / total;
+
+  // Overall style
+  if (rPct > 0.55)
+    insights.push('Highly aggressive — raises in more than half of all situations encountered');
+  else if (rPct > 0.35 && fPct < 0.25)
+    insights.push('Loose-aggressive (LAG) — bets and raises frequently across all streets');
+  else if (rPct > 0.2 && fPct > 0.3)
+    insights.push('Tight-aggressive (TAG) — folds weak spots, raises strong ones. Classic winning style');
+  else if (fPct > 0.5)
+    insights.push('Tight-passive — folds frequently and avoids putting chips in without a strong hand');
+  else
+    insights.push('Balanced — mixes folds, calls, and raises without a dominant tendency');
+
+  // Strong hand treatment
+  let strongR = 0, strongT = 0;
+  for (let si = 0; si < 4; si++)
+    for (let pb = 0; pb < 3; pb++) {
+      const a = getBest(si, 4, pb);
+      if (a < 0) continue;
+      strongT++;
+      if (a === 2) strongR++;
+    }
+  if (strongT > 0) {
+    const p = Math.round(strongR / strongT * 100);
+    if (p >= 75)
+      insights.push(`Bets strong hands hard (${p}% raise rate) — maximises value from good holdings`);
+    else if (p >= 40)
+      insights.push(`Mixes raises and calls with strong hands (${p}% raise) — occasionally slow-plays to trap`);
+    else
+      insights.push(`Slow-plays strong hands (only ${p}% raise rate) — calls to disguise strength; risk: opponents get free cards`);
+  }
+
+  // Weak hand treatment
+  let weakF = 0, weakR = 0, weakT = 0;
+  for (let si = 0; si < 4; si++)
+    for (let pb = 0; pb < 3; pb++) {
+      const a = getBest(si, 0, pb);
+      if (a < 0) continue;
+      weakT++;
+      if (a === 0) weakF++;
+      if (a === 2) weakR++;
+    }
+  if (weakT > 0) {
+    const fp = Math.round(weakF / weakT * 100);
+    const bp = Math.round(weakR / weakT * 100);
+    if (bp >= 35)
+      insights.push(`Bluffs with weak hands in ${bp}% of situations — deceptive, but risky against frequent callers`);
+    else if (fp >= 70)
+      insights.push(`Disciplined laydowns — folds weak hands ${fp}% of the time. Avoids bleeding chips`);
+    else
+      insights.push(`Calls down with weak hands — likes to see showdowns even when likely behind`);
+  }
+
+  // Pre-flop vs river aggression
+  let preR = 0, preT = 0, rivR = 0, rivT = 0;
+  for (let sb = 0; sb < 5; sb++)
+    for (let pb = 0; pb < 3; pb++) {
+      const pa = getBest(0, sb, pb); if (pa >= 0) { preT++; if (pa === 2) preR++; }
+      const ra = getBest(3, sb, pb); if (ra >= 0) { rivT++; if (ra === 2) rivR++; }
+    }
+  if (preT > 0 && rivT > 0) {
+    const preRate = preR / preT, rivRate = rivR / rivT;
+    if (preRate > rivRate + 0.3)
+      insights.push('More aggressive pre-flop than on the river — takes control early and wins pots before showdown');
+    else if (rivRate > preRate + 0.3)
+      insights.push('River aggressor — pressure increases on the final street when pot odds shift');
+  }
+
+  // Big pot vs small pot
+  let bigR = 0, bigT = 0, smR = 0, smT = 0;
+  for (let si = 0; si < 4; si++)
+    for (let sb = 0; sb < 5; sb++) {
+      const ba = getBest(si, sb, 2); if (ba >= 0) { bigT++; if (ba === 2) bigR++; }
+      const sa = getBest(si, sb, 0); if (sa >= 0) { smT++; if (sa === 2) smR++; }
+    }
+  if (bigT > 0 && smT > 0) {
+    const bigRate = bigR / bigT, smRate = smR / smT;
+    if (bigRate > smRate + 0.25)
+      insights.push('Commits harder in large pots — escalates when the stakes are high');
+    else if (smRate > bigRate + 0.25)
+      insights.push('Attacks small pots aggressively — raises early before pots grow');
+  }
+
+  let handsLine = '';
+  if (handsCtx) {
+    const { played, total, allDefeated, opponents } = handsCtx;
+    if (allDefeated) {
+      const oppWord = opponents === 1 ? 'opponent' : `all ${opponents} opponents`;
+      handsLine = `<li style="font-size:0.74rem;color:var(--gold);padding:6px 10px;background:rgba(240,192,64,0.07);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5;font-weight:600">Eliminated ${oppWord} in <b>${played}</b> hands</li>`;
+    } else {
+      handsLine = `<li style="font-size:0.74rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--muted);border-radius:0 5px 5px 0;line-height:1.5">Led at the ${total}-hand limit — battle ended before full elimination</li>`;
+    }
+  }
+
+  let html = `<div style="margin-top:10px;margin-bottom:2px">` +
+    `<div style="color:${pCol};font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px">${pName} · Strategy Insights</div>` +
+    `<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px">` +
+    handsLine;
+  insights.forEach(txt => {
+    html += `<li style="font-size:0.74rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid ${pCol};border-radius:0 5px 5px 0;line-height:1.5">${txt}</li>`;
+  });
+  html += `</ul></div>`;
+  return html;
 }
 
 function showH2HResults() {
@@ -4051,18 +4242,16 @@ function showH2HResults() {
     // Both learned strategies
     `<hr class="div" style="margin:18px 0">` +
     stratGrid(s1, 'P1', BTL_COLS[0]) +
+    stratSummary(s1, 'P1', BTL_COLS[0], wIdx === 0 && !tied ? { played: btlHandNum, total: btlTotalHands, allDefeated: p2.chips === 0, opponents: 1 } : null) +
     `<hr class="div" style="margin:14px 0">` +
     stratGrid(s2, 'P2', BTL_COLS[1]) +
+    stratSummary(s2, 'P2', BTL_COLS[1], wIdx === 1 && !tied ? { played: btlHandNum, total: btlTotalHands, allDefeated: p1.chips === 0, opponents: 1 } : null) +
     `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
 
   const converged = btlAllConverged();
-  if (btlAutoRun && !converged) { continueBattle(); return; }
-  btlAutoRun = false;
+  if (!converged && !btlStopFlag) { continueBattle(); return; }
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
-  const clBtn = document.getElementById('continueLearningBtn');
-  clBtn.style.display = converged ? 'none' : '';
-  clBtn.textContent = `CONTINUE LEARNING (Gen ${btlGeneration + 2})`;
   document.getElementById('convergedMsg').style.display = converged ? '' : 'none';
   document.getElementById('battleResultSubtitle').textContent =
     'Head to Head · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged ? ' · CONVERGED' : '');
@@ -4229,7 +4418,8 @@ function showBattleResults() {
     sg += `</tbody></table></div>` +
       `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
 
-    html += sg;
+    const allDefeated = sorted.slice(1).every(p => p.chips === 0);
+    html += sg + stratSummary(st, winner.name, BTL_COLS[winIdx % BTL_COLS.length], { played: btlHandNum, total: btlTotalHands, allDefeated, opponents: btlPlayers.length - 1 });
   }
 
   // Chip evolution chart
@@ -4255,13 +4445,9 @@ function showBattleResults() {
     `</div>`;
 
   const converged2 = btlAllConverged();
-  if (btlAutoRun && !converged2) { continueBattle(); return; }
-  btlAutoRun = false;
+  if (!converged2 && !btlStopFlag) { continueBattle(); return; }
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
-  const clBtn2 = document.getElementById('continueLearningBtn');
-  clBtn2.style.display = converged2 ? 'none' : '';
-  clBtn2.textContent = `CONTINUE LEARNING (Gen ${btlGeneration + 2})`;
   document.getElementById('convergedMsg').style.display = converged2 ? '' : 'none';
   document.getElementById('battleResultSubtitle').textContent =
     'AI Battle · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged2 ? ' · CONVERGED' : '');
@@ -4364,7 +4550,7 @@ function showBattleResults() {
                 <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option>
               </select>
               <select class="card-sel" id="btlSuit2">
-                <option value="0">♠</option><option value="1">♥</option><option value="2">♦</option><option value="3">♣</option>
+                <option value="0">♠</option><option value="1">♥</option><option value="2">♦</option><option value="3" selected>♣</option>
               </select>
             </div>
           </div>
@@ -4374,13 +4560,13 @@ function showBattleResults() {
 
     <button class="btn-outline" style="margin-bottom:18px;font-size:0.82rem;letter-spacing:1px" onclick="document.getElementById('btlHowItWorks').style.display=document.getElementById('btlHowItWorks').style.display==='none'?'block':'none'">HOW IT WORKS</button>
     <div id="btlHowItWorks" style="display:none;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.82rem;line-height:1.75;color:var(--muted)">
-      <strong style="color:var(--text)">Cards are fixed for the entire battle.</strong> The same hole cards and the same 5 community cards are used for every hand — no card variance.<br><br>
-      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually learn better fold / call / raise decisions for that specific board. Any chip movement is purely from strategy, not luck.<br><br>
-      <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player makes a random decision instead of using what they've learned. Starts at 0.40 and decays each hand down to a minimum of 0.05. A low ε means the player is mostly exploiting their learned strategy rather than experimenting.<br><br>
+      <strong style="color:var(--text)">Cards and position are fixed for the entire battle.</strong> The same hole cards, community cards, and table position are used for every hand — no variance. This isolates strategy as the only variable.<br><br>
+      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually discover better fold / call / raise decisions for that specific board and position. Any chip movement is purely from strategy, not luck.<br><br>
+      <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player tries a random action instead of using what they've learned. Starts at 0.40 and decays each hand down to 0.05. Low ε means the player is exploiting their learned strategy rather than experimenting.<br><br>
       <strong style="color:var(--text)">raise×</strong> is the raise size multiplier. Starts at 0.75 and adapts over time — if raising wins, it nudges up (bet bigger); if raising loses, it nudges down (bet smaller). The Q-table decides <em>whether</em> to raise; raise× decides <em>how much</em>.<br><br>
-      <strong style="color:var(--text)">To find the ultimate winning strategy</strong>, run a battle then hit <em>Continue Learning</em> in the results. It automatically runs as many generations as needed — calculating the exact number of hands required each time — and stops only when all active players reach ε = 0.05. No manual clicking between generations.<br><br>
-      The <strong style="color:var(--text)">Learned Strategy heatmap</strong> appears directly below the final standings. Each cell shows the preferred action (F=Fold, C=Call, R=Raise) for a given hand strength and pot size. When fully converged, this is the ultimate strategy for those fixed cards.<br><br>
-      The <strong style="color:var(--text)">5 columns</strong> represent hand strength — Weak (high card), Fair (one pair), Med (two pair), Good (trips/straight/flush), Strong (full house/quads/straight flush). The <strong style="color:var(--text)">3 dots</strong> within each cell represent pot size: small · med · big. Each cell answers: <em>given this hand strength and pot size, what is the optimal action?</em>
+      <strong style="color:var(--text)">The battle runs automatically</strong> across as many generations as needed, stopping only when all active players reach ε = 0.05 (fully converged). Hit STOP at any time to see current results.<br><br>
+      <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Weak → Strong). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
+      <strong style="color:var(--text)">Results screen</strong> shows the fully converged strategy grid, plain-English strategy insights, how many hands it took to eliminate opponents, and a chip evolution chart across the battle.
     </div>
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
@@ -4408,7 +4594,8 @@ function showBattleResults() {
 
     <div style="color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Action Log</div>
     <div id="battleLog" style="font-size:0.72rem;color:var(--muted);line-height:1.8;max-height:120px;overflow-y:auto;font-family:monospace;background:var(--panel2);padding:8px 10px;border-radius:8px"></div>
-    <div id="battleChipChart" style="margin-top:10px"></div>
+    <div id="battleLiveStrategy" style="margin-top:14px"></div>
+    <div id="battleChipChart" style="margin-top:14px"></div>
     <div id="btlStepBtns" style="display:none;gap:10px;margin-top:14px">
       <button id="btlNextBtn" class="btn btn-gold" style="flex:1;min-height:50px" onclick="btlStepAdvance()">NEXT ▶</button>
       <button class="btn-outline" style="flex:0 0 auto;width:auto;padding:14px 18px;min-height:50px" onclick="btlFinishAll()">FINISH ALL</button>
@@ -4427,7 +4614,6 @@ function showBattleResults() {
       All players have converged (ε = 0.05). The strategy heatmap above shows the ultimate learned strategy.
     </div>
     <button class="btn btn-gold"     style="margin-top:20px"  onclick="showScreen('battleSetupScreen')">PLAY AGAIN</button>
-    <button class="btn btn-outline"  id="continueLearningBtn" style="margin-top:10px;display:none" onclick="continueBattle()">CONTINUE LEARNING</button>
     <button class="btn btn-outline"  style="margin-top:10px"  onclick="goSetup()">MAIN MENU</button>
   </div>
 </div>
