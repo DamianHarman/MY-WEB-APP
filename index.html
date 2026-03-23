@@ -282,7 +282,7 @@
       margin-top: 10px;
     }
 
-    /* ── Button ── */
+/* ── Button ── */
     .btn {
       display: block;
       width: 100%;
@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v32</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v33</p>
 
   <div class="panel">
 
@@ -939,11 +939,11 @@
                 <option value="3">3</option>
                 <option value="2">2</option>
               </select>
-              <select class="card-sel" id="suit1" onchange="pickerChanged()">
-                <option value="0">♠</option>
-                <option value="1">♥</option>
-                <option value="2">♦</option>
-                <option value="3">♣</option>
+              <select class="card-sel" id="suit1" onchange="pickerChanged();suitSelColor(this)">
+                <option value="0" style="color:#e0e0e0">♠</option>
+                <option value="1" style="color:#e53935">♥</option>
+                <option value="2" style="color:#e53935">♦</option>
+                <option value="3" style="color:#e0e0e0">♣</option>
               </select>
             </div>
             <div class="picker-preview" id="preview1"></div>
@@ -967,11 +967,11 @@
                 <option value="3">3</option>
                 <option value="2">2</option>
               </select>
-              <select class="card-sel" id="suit2" onchange="pickerChanged()">
-                <option value="0">♠</option>
-                <option value="1">♥</option>
-                <option value="2">♦</option>
-                <option value="3">♣</option>
+              <select class="card-sel" id="suit2" onchange="pickerChanged();suitSelColor(this)">
+                <option value="0" style="color:#e0e0e0">♠</option>
+                <option value="1" style="color:#e53935">♥</option>
+                <option value="2" style="color:#e53935">♦</option>
+                <option value="3" style="color:#e0e0e0">♣</option>
               </select>
             </div>
             <div class="picker-preview" id="preview2"></div>
@@ -1006,11 +1006,11 @@
                     <option value="3">3</option>
                     <option value="2">2</option>
                   </select>
-                  <select class="card-sel" id="suit3" onchange="pickerChanged()">
-                    <option value="0">♠</option>
-                    <option value="1" selected>♥</option>
-                    <option value="2">♦</option>
-                    <option value="3">♣</option>
+                  <select class="card-sel" id="suit3" onchange="pickerChanged();suitSelColor(this)">
+                    <option value="0" style="color:#e0e0e0">♠</option>
+                    <option value="1" selected style="color:#e53935">♥</option>
+                    <option value="2" style="color:#e53935">♦</option>
+                    <option value="3" style="color:#e0e0e0">♣</option>
                   </select>
                 </div>
                 <div class="picker-preview" id="preview3"></div>
@@ -1034,11 +1034,11 @@
                     <option value="3">3</option>
                     <option value="2">2</option>
                   </select>
-                  <select class="card-sel" id="suit4" onchange="pickerChanged()">
-                    <option value="0">♠</option>
-                    <option value="1" selected>♥</option>
-                    <option value="2">♦</option>
-                    <option value="3">♣</option>
+                  <select class="card-sel" id="suit4" onchange="pickerChanged();suitSelColor(this)">
+                    <option value="0" style="color:#e0e0e0">♠</option>
+                    <option value="1" selected style="color:#e53935">♥</option>
+                    <option value="2" style="color:#e53935">♦</option>
+                    <option value="3" style="color:#e0e0e0">♣</option>
                   </select>
                 </div>
                 <div class="picker-preview" id="preview4"></div>
@@ -1242,8 +1242,7 @@
       <div class="chip-group">
         <button class="chip on" onclick="setLbView('list',this)">List</button>
         <button class="chip"    onclick="setLbView('chart',this)">Chart</button>
-        <button class="chip"    onclick="setLbView('matrix',this)">Matrix</button>
-        <button class="chip"    onclick="setLbView('matrix2',this)">Matrix 2</button>
+        <button class="chip"    onclick="setLbView('matrix2',this)">Matrix</button>
       </div>
     </div>
 
@@ -1272,18 +1271,6 @@
     </div>
 
     <!-- matrix section (hidden by default) -->
-    <div id="lbMatrixSection" style="display:none">
-      <div class="lb-chart-tabs" id="lbMatrixTabs">
-        <button class="chip on" onclick="switchMatrixTab(1,this)">1 Opp</button>
-        <button class="chip"    onclick="switchMatrixTab(2,this)">2 Opps</button>
-        <button class="chip"    onclick="switchMatrixTab(3,this)">3 Opps</button>
-      </div>
-      <div class="lb-matrix-wrap">
-        <div id="lbMatrix"></div>
-      </div>
-    </div>
-
-    <!-- matrix 2 section (hidden by default) -->
     <div id="lbMatrix2Section" style="display:none">
       <div class="lb-chart-tabs" id="lbMatrix2Tabs">
         <button class="chip on" onclick="switchMatrix2Tab(1,this)">1 Opp</button>
@@ -1292,7 +1279,7 @@
         <button class="chip"    onclick="switchMatrix2Tab(4,this)">4 Opps~</button>
         <button class="chip"    onclick="switchMatrix2Tab(6,this)">6 Opps~</button>
       </div>
-      <div id="lbMatrix2ScaleNote" style="display:none;font-size:0.62rem;color:var(--muted);margin-bottom:8px">~ Estimated by scaling from 1-opponent data</div>
+      <div id="lbMatrix2ScaleNote" style="display:none"></div>
       <div class="lb-matrix-wrap">
         <div id="lbMatrix2"></div>
       </div>
@@ -1625,11 +1612,13 @@ function setCardMode(mode, btn) {
     lbl.style.display = 'none';
     opp.style.display = 'none';
     pickerChanged();
+    ['suit1','suit2'].forEach(id => suitSelColor(document.getElementById(id)));
   } else if (mode === 'pick-vs') {
     area.classList.add('visible');
     lbl.style.display = 'block';
     opp.style.display = 'block';
     pickerChanged();
+    ['suit1','suit2','suit3','suit4'].forEach(id => suitSelColor(document.getElementById(id)));
   } else {
     area.classList.remove('visible');
     document.getElementById('pickerError').textContent = '';
@@ -2181,6 +2170,7 @@ function showLeaderboard() {
   // always reset to list view
   setLbView('list', document.querySelector('#lbScreen .lb-view-toggle .chip'));
   renderLeaderboard();
+  updateMatrix2TabLabels();
   showScreen('lbScreen');
 }
 
@@ -2192,10 +2182,8 @@ function setLbView(view, btn) {
   btn.classList.add('on');
   document.getElementById('lbBoardsRow').style.display      = view === 'list'    ? 'flex'  : 'none';
   document.getElementById('lbChartSection').style.display   = view === 'chart'   ? 'block' : 'none';
-  document.getElementById('lbMatrixSection').style.display  = view === 'matrix'  ? 'block' : 'none';
   document.getElementById('lbMatrix2Section').style.display = view === 'matrix2' ? 'block' : 'none';
   if (view === 'chart')   renderChart();
-  if (view === 'matrix')  renderMatrix();
   if (view === 'matrix2') renderMatrix2();
 }
 
@@ -2334,66 +2322,13 @@ function startSweep() {
   next();
 }
 
-// ─── Matrix view ──────────────────────────────────────────────────────────────
-let matrixTab = 1;
-
-function switchMatrixTab(n, btn) {
-  matrixTab = n;
-  document.querySelectorAll('#lbMatrixTabs .chip').forEach(b => b.classList.remove('on'));
-  btn.classList.add('on');
-  renderMatrix();
-}
-
-function renderMatrix() {
-  const lb      = computeLeaderboard(matrixTab);
-  const rateMap = {};
-  for (const e of lb) rateMap[pairKey(e.cards[0], e.cards[1])] = e.winRate;
-
-  const ranks   = [14,13,12,11,10,9,8,7,6,5,4,3,2];
-  const rankSym = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
-
-  let html = '<table class="lb-matrix-table"><thead><tr><th></th>';
-  for (const r of rankSym) html += `<th>${r}<span style="color:#99aacc">♠</span></th>`;
-  html += '</tr></thead><tbody>';
-
-  for (let ri = 0; ri < 13; ri++) {
-    const rRank = ranks[ri];
-    html += `<tr><th>${rankSym[ri]}<span style="color:#f66">♥</span></th>`;
-    for (let ci = 0; ci < 13; ci++) {
-      const cRank = ranks[ci];
-      let key, label;
-      if (rRank === cRank) {
-        key   = `${rRank}|${rRank}|o`;
-        label = `${rankSym[ri]}${rankSym[ri]}`;
-      } else if (cRank > rRank) {
-        key   = `${cRank}|${rRank}|s`;
-        label = `${rankSym[ci]}${rankSym[ri]}s`;
-      } else {
-        key   = `${rRank}|${cRank}|o`;
-        label = `${rankSym[ri]}${rankSym[ci]}o`;
-      }
-      const rate = rateMap[key];
-      if (rate === undefined) {
-        html += `<td class="lb-mc-none">${label}</td>`;
-      } else {
-        html += `<td style="background:${m2Bg(rate)};color:${m2Tc(rate)}" title="${label}: ${(rate*100).toFixed(1)}%">${(rate*100).toFixed(0)}</td>`;
-      }
-    }
-    html += '</tr>';
-  }
-
-  html += '</tbody></table>';
-  document.getElementById('lbMatrix').innerHTML = html;
-}
-
-// ─── Matrix 2 (diagonal split: suited / offsuit) ──────────────────────────────
+// ─── Matrix (diagonal split: suited / offsuit) ────────────────────────────────
 let matrix2Tab = 1;
 
 function switchMatrix2Tab(n, btn) {
   matrix2Tab = n;
   document.querySelectorAll('#lbMatrix2Tabs .chip').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
-  document.getElementById('lbMatrix2ScaleNote').style.display = (n === 4 || n === 6) ? 'block' : 'none';
   renderMatrix2();
 }
 
@@ -2417,23 +2352,97 @@ function m2Bg(rate) { return m2Band(rate).bg; }
 function m2Tc(rate) { return m2Band(rate).tc; }
 function m2Solid(rate) { return m2Band(rate).solid; }
 
+let matrixCalcRunning = false;
+
+function updateMatrix2TabLabels() {
+  const btns = document.querySelectorAll('#lbMatrix2Tabs .chip');
+  btns.forEach(b => {
+    const n = parseInt(b.textContent);
+    if (n === 4 || n === 6) {
+      const hasData = computeLeaderboard(n).length > 0;
+      b.textContent = hasData ? `${n} Opps` : `${n} Opps~`;
+    }
+  });
+}
+
+function runMatrixCalc(numOpp) {
+  if (matrixCalcRunning) return;
+  matrixCalcRunning = true;
+
+  const ranks  = [14,13,12,11,10,9,8,7,6,5,4,3,2];
+  const rSym   = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+  const combos = [];
+  for (let i = 0; i < 13; i++) {
+    combos.push([{rank: ranks[i], suit: 0}, {rank: ranks[i], suit: 1}]);
+    for (let j = i + 1; j < 13; j++) {
+      combos.push([{rank: ranks[i], suit: 0}, {rank: ranks[j], suit: 0}]);
+      combos.push([{rank: ranks[i], suit: 0}, {rank: ranks[j], suit: 1}]);
+    }
+  }
+
+  const CALC_ITER = 10000;
+  const BATCH     = 500;
+  let comboIdx    = 0;
+
+  const savedMyCards    = myCards;
+  const savedBoardSlots = boardSlots;
+  boardSlots = [];
+
+  const el = document.getElementById('lbMatrix2');
+
+  function tick() {
+    if (comboIdx >= combos.length) {
+      myCards    = savedMyCards;
+      boardSlots = savedBoardSlots;
+      matrixCalcRunning = false;
+      updateMatrix2TabLabels();
+      renderMatrix2();
+      return;
+    }
+    const cards = combos[comboIdx];
+    myCards = cards;
+    wins = 0; losses = 0; ties = 0;
+    winHandCounts  = new Array(9).fill(0);
+    lossHandCounts = new Array(9).fill(0);
+    let handDone = 0;
+
+    function inner() {
+      const end = Math.min(handDone + BATCH, CALC_ITER);
+      for (let i = handDone; i < end; i++) runHand(numOpp);
+      handDone = end;
+      const pct  = ((comboIdx + handDone / CALC_ITER) / combos.length * 100).toFixed(1);
+      const r1   = rSym[ranks.indexOf(cards[0].rank)];
+      const r2   = rSym[ranks.indexOf(cards[1].rank)];
+      const lbl  = r1 === r2 ? `${r1}${r2}` : `${r1}${r2}${cards[0].suit === cards[1].suit ? 's' : 'o'}`;
+      el.innerHTML =
+        `<div style="padding:20px;text-align:center">` +
+        `<div style="color:var(--gold);font-size:0.85rem;margin-bottom:12px">Calculating ${numOpp}-opponent data…</div>` +
+        `<div style="color:var(--text);font-size:0.78rem;margin-bottom:8px">${lbl} · ${comboIdx+1} / ${combos.length}</div>` +
+        `<div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;margin-bottom:8px">` +
+          `<div style="background:var(--gold);height:100%;width:${pct}%"></div></div>` +
+        `<div style="color:var(--muted);font-size:0.72rem">${pct}%</div></div>`;
+      if (handDone < CALC_ITER) { setTimeout(inner, 0); return; }
+      saveLbEntry({ cards: [cards[0], cards[1]], wins, losses, ties, iterations: CALC_ITER, opponents: numOpp });
+      comboIdx++;
+      setTimeout(tick, 0);
+    }
+    setTimeout(inner, 0);
+  }
+  setTimeout(tick, 0);
+}
+
 function renderMatrix2() {
   const rateMap = {};
-  if (matrix2Tab === 4 || matrix2Tab === 6) {
-    const si = matrix2Tab === 4 ? 2 : 3; // scale index: [vs1, vs2, vs4, vs6]
-    for (const e of computeLeaderboard(1)) {
-      const isPair = e.cards[0].rank === e.cards[1].rank;
-      const wr     = e.winRate;
-      const scales = isPair      ? [1.0, 0.86, 0.68, 0.56] :
-                     wr >= 0.60  ? [1.0, 0.82, 0.64, 0.53] :
-                     wr >= 0.50  ? [1.0, 0.77, 0.58, 0.47] :
-                                   [1.0, 0.72, 0.50, 0.40];
-      rateMap[pairKey(e.cards[0], e.cards[1])] = wr * scales[si];
-    }
-  } else {
-    for (const e of computeLeaderboard(matrix2Tab))
-      rateMap[pairKey(e.cards[0], e.cards[1])] = e.winRate;
+  const actual  = computeLeaderboard(matrix2Tab);
+  if ((matrix2Tab === 4 || matrix2Tab === 6) && actual.length === 0) {
+    document.getElementById('lbMatrix2').innerHTML =
+      `<div style="padding:24px;text-align:center">` +
+      `<div style="color:var(--muted);font-size:0.82rem;margin-bottom:14px">No ${matrix2Tab}-opponent data yet.<br>Takes ~30 seconds to calculate all 169 hands.</div>` +
+      `<button class="btn btn-gold" style="font-size:0.82rem" onclick="runMatrixCalc(${matrix2Tab})">CALCULATE ${matrix2Tab} OPP DATA</button></div>`;
+    return;
   }
+  for (const e of actual)
+    rateMap[pairKey(e.cards[0], e.cards[1])] = e.winRate;
 
   const ranks   = [14,13,12,11,10,9,8,7,6,5,4,3,2];
   const rankSym = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
@@ -3058,18 +3067,23 @@ function buildBoardPicker(n) {
     const rankLbl = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
     const rOpts = ranks.map((r, k) =>
       `<option value="${r}"${r === defR ? ' selected' : ''}>${rankLbl[k]}</option>`).join('');
+    const SUIT_COLS = ['#e0e0e0','#e53935','#e53935','#e0e0e0'];
     const sOpts = ['♠','♥','♦','♣'].map((s, k) =>
-      `<option value="${k}"${k === defS ? ' selected' : ''}>${s}</option>`).join('');
+      `<option value="${k}"${k === defS ? ' selected' : ''} style="color:${SUIT_COLS[k]}">${s}</option>`).join('');
     const slot = document.createElement('div');
     slot.className = 'board-slot';
     slot.innerHTML =
       `<div class="board-slot-lbl">${BOARD_LABELS[i]}</div>` +
       `<div class="board-selects">` +
         `<select class="card-sel" id="br${i}" onchange="boardPickerChanged()">${rOpts}</select>` +
-        `<select class="card-sel" id="bs${i}" onchange="boardPickerChanged()">${sOpts}</select>` +
+        `<select class="card-sel" id="bs${i}" onchange="boardPickerChanged();suitSelColor(this)">${sOpts}</select>` +
       `</div>` +
       `<div class="picker-preview" id="bprev${i}"></div>`;
     row.appendChild(slot);
+  }
+  for (let i = 0; i < n; i++) {
+    const s = document.getElementById(`bs${i}`);
+    if (s) suitSelColor(s);
   }
   boardPickerChanged();
 }
@@ -3227,11 +3241,20 @@ let btlSavedHoles  = [];  // hole cards from last battle, for repeat
 let btlFixedComm   = [];  // fixed community cards for entire battle
 let btlP1CardMode  = 'random'; // 'random' | 'pick'
 
+function suitSelColor(sel) {
+  const v = +sel.value;
+  sel.style.color = (v === 1 || v === 2) ? '#e53935' : '#e0e0e0';
+}
+
 function setBtlP1CardMode(mode, el) {
   btlP1CardMode = mode;
   document.querySelectorAll('#btlP1ModeChips .chip').forEach(b => b.classList.remove('on'));
   el.classList.add('on');
   document.getElementById('btlP1Picker').style.display = mode === 'pick' ? 'block' : 'none';
+  if (mode === 'pick') {
+    suitSelColor(document.getElementById('btlSuit1'));
+    suitSelColor(document.getElementById('btlSuit2'));
+  }
 }
 let btlTotalHands  = 100;
 let btlGeneration  = 0;
@@ -3878,7 +3901,6 @@ function continueBattle() {
   btlAutoRun    = true;
   btlGeneration++;
   btlStopFlag   = false;
-  btlHandNum    = 0;
   btlLogLines   = [];
   btlPlayers.forEach(p => {
     p.chips   = BTL_START;
@@ -3897,12 +3919,12 @@ function continueBattle() {
   const n = btlNumPlayers;
   const posOffset = { BTN: 0, SB: 1, BB: 2, UTG: 3, CO: Math.max(n - 1, 1) };
   btlDealerIdx   = (n - (posOffset[btlStartPos] ?? 0)) % n;
-  btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
+  btlChipHistory = [{ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) }];
   // Calculate hands needed to bring the highest ε to BTL_EPSILON_MIN in one run
   const maxEps = Math.max(...btlPlayerStats.map(st => st.epsilon));
   if (maxEps > BTL_EPSILON_MIN) {
     const handsNeeded = Math.ceil(Math.log(BTL_EPSILON_MIN / maxEps) / Math.log(BTL_EPSILON_DECAY));
-    btlTotalHands = Math.max(btlTotalHands, handsNeeded);
+    btlTotalHands = btlHandNum + handsNeeded;
   }
   showScreen('battleRunScreen');
   scheduleNextBattleHand();
@@ -4454,6 +4476,7 @@ function showBattleResults() {
   showScreen('battleResultScreen');
 }
 
+
 </script>
 
 <!-- ── AI Battle Setup ────────────────────────────────────────────────────── -->
@@ -4535,8 +4558,8 @@ function showBattleResults() {
                 <option value="8">8</option><option value="7">7</option><option value="6">6</option>
                 <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option>
               </select>
-              <select class="card-sel" id="btlSuit1">
-                <option value="0">♠</option><option value="1">♥</option><option value="2">♦</option><option value="3">♣</option>
+              <select class="card-sel" id="btlSuit1" onchange="suitSelColor(this)">
+                <option value="0" style="color:#e0e0e0">♠</option><option value="1" style="color:#e53935">♥</option><option value="2" style="color:#e53935">♦</option><option value="3" style="color:#e0e0e0">♣</option>
               </select>
             </div>
           </div>
@@ -4549,8 +4572,8 @@ function showBattleResults() {
                 <option value="8">8</option><option value="7">7</option><option value="6">6</option>
                 <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option>
               </select>
-              <select class="card-sel" id="btlSuit2">
-                <option value="0">♠</option><option value="1">♥</option><option value="2">♦</option><option value="3" selected>♣</option>
+              <select class="card-sel" id="btlSuit2" onchange="suitSelColor(this)">
+                <option value="0" style="color:#e0e0e0">♠</option><option value="1" style="color:#e53935">♥</option><option value="2" style="color:#e53935">♦</option><option value="3" selected style="color:#e0e0e0">♣</option>
               </select>
             </div>
           </div>
