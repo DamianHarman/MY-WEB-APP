@@ -3385,6 +3385,7 @@ function btlDirectWin(playerIdx) {
 const BTL_Q_STATES  = 60;
 const BTL_Q_ACTIONS = 3;
 const BTL_ALPHA     = 0.15;   // learning rate
+const BTL_GAMMA     = 0.90;   // discount factor — later actions get more credit than earlier ones
 const BTL_EPSILON_START = 0.40;
 const BTL_EPSILON_MIN   = 0.05;
 const BTL_EPSILON_DECAY = 0.992; // per hand
@@ -3431,6 +3432,21 @@ function btlGetState(playerIdx, streetIdx) {
   return streetIdx * 15 + sBucket * 3 + potBucket;
 }
 
+// Deal fresh hole cards to all players each hand.
+// Community cards stay fixed; P1 keeps picked cards if btlSavedHoles[0] is set.
+function btlDealHoleCards() {
+  const p1Fixed = btlSavedHoles.length > 0 ? btlSavedHoles[0] : null;
+  const holeDeck = newDeck().filter(c =>
+    !btlFixedComm.some(fc => eqCard(fc, c)) &&
+    !(p1Fixed && p1Fixed.some(h => eqCard(h, c)))
+  );
+  shuffle(holeDeck);
+  let hTop = 0;
+  btlPlayers.forEach((p, i) => {
+    p.hole = (i === 0 && p1Fixed) ? [...p1Fixed] : [holeDeck[hTop++], holeDeck[hTop++]];
+  });
+}
+
 function btlChooseAction(playerIdx, state, canCheck) {
   const st = btlPlayerStats[playerIdx];
   const q  = st.qtable;
@@ -3452,10 +3468,14 @@ function btlUpdateQTables() {
     if (!st || !p.episode || p.episode.length === 0) return;
     const chipDelta = p.chips - st.prevChips;
     const reward    = chipDelta / BTL_START; // normalise to roughly -1…+1
-    for (const { state, action } of p.episode) {
+    const T = p.episode.length;
+    // Discounted returns: river action gets full reward, earlier streets discounted by γ
+    // so the model learns that river decisions are most directly tied to outcome
+    p.episode.forEach(({ state, action }, t) => {
+      const G   = reward * Math.pow(BTL_GAMMA, T - 1 - t);
       const key = state * BTL_Q_ACTIONS + action;
-      st.qtable[key] += BTL_ALPHA * (reward - st.qtable[key]);
-    }
+      st.qtable[key] += BTL_ALPHA * (G - st.qtable[key]);
+    });
     st.epsilon = Math.max(BTL_EPSILON_MIN, st.epsilon * BTL_EPSILON_DECAY);
     st.prevChips = p.chips;
     p.episode = [];
@@ -3547,6 +3567,7 @@ function btlBeginHandStep() {
     p.inHand = p.chips > 0; p.action = ''; p.episode = [];
     if (btlPlayerStats[i]) btlPlayerStats[i].raisedThisHand = false;
   });
+  btlDealHoleCards(); // fresh hole cards every hand
   btlStepDealtIn = btlPlayers.map(p => p.inHand);
   btlComm    = btlFixedComm;
   btlVisible = 0;
@@ -3660,9 +3681,10 @@ function playBattleHand() {
   btlPot = 0;
   btlPlayers.forEach((p, i) => { p.inHand = p.chips > 0; p.action = ''; p.episode = [];
     if (btlPlayerStats[i]) btlPlayerStats[i].raisedThisHand = false; });
+  btlDealHoleCards(); // fresh hole cards every hand so the full strategy space gets explored
   const dealtIn = btlPlayers.map(p => p.inHand);
 
-  // Both hole cards and community cards are fixed for the entire battle
+  // Community board is fixed for the entire battle; hole cards vary each hand
   btlComm    = btlFixedComm;
   btlVisible = 0;
 
@@ -3826,7 +3848,7 @@ function startBattle() {
   const offset = posOffset[btlStartPos] ?? 0;
   btlDealerIdx = (n - offset) % n;
 
-  // Deal fixed hole cards once — they never change throughout the battle
+  // P1 can pick fixed hole cards; community board is fixed; all other hole cards re-dealt each hand
   let p1Hole = null;
   if (btlP1CardMode === 'pick') {
     const r1 = +document.getElementById('btlRank1').value;
@@ -3835,14 +3857,12 @@ function startBattle() {
     const s2 = +document.getElementById('btlSuit2').value;
     if (!(r1 === r2 && s1 === s2)) p1Hole = [{ rank: r1, suit: s1 }, { rank: r2, suit: s2 }];
   }
-  const holeDeck = newDeck().filter(c => !p1Hole || !p1Hole.some(h => eqCard(h, c)));
-  shuffle(holeDeck);
-  let hTop = 0;
-  btlPlayers.forEach((p, i) => {
-    p.hole = i === 0 && p1Hole ? p1Hole : [holeDeck[hTop++], holeDeck[hTop++]];
-  });
-  btlFixedComm  = [holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++], holeDeck[hTop++]];
-  btlSavedHoles  = btlPlayers.map(p => [...p.hole]); // save for repeat
+  // Fix community cards for the entire battle (excludes P1's picked cards if any)
+  const commDeck = newDeck().filter(c => !p1Hole || !p1Hole.some(h => eqCard(h, c)));
+  shuffle(commDeck);
+  btlFixedComm  = [commDeck[0], commDeck[1], commDeck[2], commDeck[3], commDeck[4]];
+  btlSavedHoles = p1Hole ? [[...p1Hole]] : []; // save P1 picked cards only (opponents get fresh cards each hand)
+  btlDealHoleCards(); // deal initial hole cards for first hand
   btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
 
   showScreen('battleRunScreen');
@@ -3864,13 +3884,14 @@ function repeatBattle() {
   btlPlayers     = [];
   btlPlayerStats = [];
   for (let i = 0; i < btlNumPlayers; i++) {
-    btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: btlSavedHoles[i] || [], inHand: false, action: '', episode: [] });
+    btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: [], inHand: false, action: '', episode: [] });
     btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0,
                           raiseMult: 0.75, prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
                           qtable: new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
                           epsilon: BTL_EPSILON_START });
   }
-  // btlFixedComm already set from previous startBattle — reuse same community cards
+  // btlFixedComm and btlSavedHoles already set from previous startBattle — reuse same board and P1 cards
+  btlDealHoleCards(); // deal initial hole cards
   const n = btlNumPlayers;
   const posOffset = { BTN: 0, SB: 1, BB: 2, UTG: 3, CO: Math.max(n - 1, 1) };
   btlDealerIdx    = (n - (posOffset[btlStartPos] ?? 0)) % n;
@@ -4583,9 +4604,9 @@ function showBattleResults() {
 
     <button class="btn-outline" style="margin-bottom:18px;font-size:0.82rem;letter-spacing:1px" onclick="document.getElementById('btlHowItWorks').style.display=document.getElementById('btlHowItWorks').style.display==='none'?'block':'none'">HOW IT WORKS</button>
     <div id="btlHowItWorks" style="display:none;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.82rem;line-height:1.75;color:var(--muted)">
-      <strong style="color:var(--text)">Cards and position are fixed for the entire battle.</strong> The same hole cards, community cards, and table position are used for every hand — no variance. This isolates strategy as the only variable.<br><br>
-      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually discover better fold / call / raise decisions for that specific board and position. Any chip movement is purely from strategy, not luck.<br><br>
-      <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player tries a random action instead of using what they've learned. Starts at 0.40 and decays each hand down to 0.05. Low ε means the player is exploiting their learned strategy rather than experimenting.<br><br>
+      <strong style="color:var(--text)">The community board is fixed for the entire battle.</strong> Every hand is played on the same five board cards, so board texture is never a factor. Each player is dealt <em>fresh</em> hole cards every hand — this means they visit weak, medium, and strong hand states on that board, and the AI learns what to do in each case.<br><br>
+      <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually discover better fold / call / raise decisions across all hand-strength and street combinations. Chip swings come purely from strategy, not card luck.<br><br>
+      <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player tries a random action instead of using what they've learned. Starts at 0.40 and decays each hand down to 0.05. Low ε means the player is exploiting their learned strategy rather than experimenting. Learning uses discounted returns: river decisions get full credit, earlier streets get progressively less — reflecting that late-street choices are most directly tied to the outcome.<br><br>
       <strong style="color:var(--text)">raise×</strong> is the raise size multiplier. Starts at 0.75 and adapts over time — if raising wins, it nudges up (bet bigger); if raising loses, it nudges down (bet smaller). The Q-table decides <em>whether</em> to raise; raise× decides <em>how much</em>.<br><br>
       <strong style="color:var(--text)">The battle runs automatically</strong> across as many generations as needed, stopping only when all active players reach ε = 0.05 (fully converged). Hit STOP at any time to see current results.<br><br>
       <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Weak → Strong). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
