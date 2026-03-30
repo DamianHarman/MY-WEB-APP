@@ -894,7 +894,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v33</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v34</p>
 
   <div class="panel">
 
@@ -1083,7 +1083,51 @@
     </div>
     <button class="btn btn-outline" style="margin-top:10px" onclick="quickSim()">QUICK SIM · 100K</button>
     <button class="btn btn-outline" style="margin-top:10px" onclick="startGuide()">HAND PLAY GUIDE</button>
-    <button class="btn btn-outline" style="margin-top:10px" onclick="showScreen('battleSetupScreen')">AI BATTLE</button>
+    <button class="btn btn-outline" style="margin-top:10px" onclick="goBattleSetup()">AI BATTLE</button>
+    <button class="btn btn-outline" style="margin-top:10px;border-color:var(--muted);color:var(--muted);font-size:0.72rem" onclick="showScreen('whatsNewScreen')">WHAT'S NEW</button>
+  </div>
+</div>
+
+<!-- ── What's New ─────────────────────────────────────────────────────────── -->
+<div id="whatsNewScreen" class="screen">
+  <h1>POKER SIM</h1>
+  <p class="subtitle">What's New</p>
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goSetup()">← BACK</button>
+      <span style="font-size:0.8rem;font-weight:700;color:var(--muted);letter-spacing:2px">CHANGELOG</span>
+      <div style="width:80px"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:18px">
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v34</span>
+          <span style="color:var(--muted);font-size:0.68rem">Current</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">AI Battle — player learning now carries over between battles. Each of P1–P8 retains their own strategy personality across sessions.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Learned Player Strategy selector on results screen — tap any P1–P8 pill to view their full strategy grid and insights.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Net chip score per player — running total of chips won/lost across all battles displayed with each player's strategy.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Reset Learning button — wipe all learned strategies and start fresh.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Fixed temporal discounting — earlier street decisions now correctly carry more learning weight than river decisions.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v33</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">AI Battle mode improvements — live strategy panel, auto-convergence, adaptive raise sizing.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Head-to-head mode added.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">P1 starting position selector (BTN/SB/BB/UTG/CO).</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Chip evolution chart on results screen.</li>
+        </ul>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -1716,6 +1760,10 @@ function quickSim() {
 }
 
 function goSetup() { showScreen('setupScreen'); }
+function goBattleSetup() {
+  document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
+  showScreen('battleSetupScreen');
+}
 
 function renderLbRank(cards) {
   const key = pairKey(cards[0], cards[1]);
@@ -3268,6 +3316,8 @@ let btlStepDealtIn = [];
 let btlStepSbIdx   = 0;
 let btlPlayers     = [];   // {name, chips, hole, inHand, action}
 let btlPlayerStats = [];   // {fold, check, call, raise, won, played}
+// Persistent per-player memory: index 0=P1 … 7=P8; null = no data yet
+let btlPlayerMemory = Array.from({ length: 8 }, () => null);
 let btlComm        = [];   // 5 locked-in community cards
 let btlPot         = 0;
 let btlVisible     = 0;    // how many community cards shown in UI
@@ -3469,10 +3519,10 @@ function btlUpdateQTables() {
     const chipDelta = p.chips - st.prevChips;
     const reward    = chipDelta / BTL_START; // normalise to roughly -1…+1
     const T = p.episode.length;
-    // Discounted returns: river action gets full reward, earlier streets discounted by γ
-    // so the model learns that river decisions are most directly tied to outcome
+    // Discounted returns: earlier actions get more credit (pre-flop decisions have
+    // the largest impact; river decisions have the smallest incremental impact)
     p.episode.forEach(({ state, action }, t) => {
-      const G   = reward * Math.pow(BTL_GAMMA, T - 1 - t);
+      const G   = reward * Math.pow(BTL_GAMMA, t);
       const key = state * BTL_Q_ACTIONS + action;
       st.qtable[key] += BTL_ALPHA * (G - st.qtable[key]);
     });
@@ -3828,6 +3878,13 @@ function updateBattleUI() {
 }
 
 function startBattle() {
+  // Flush current battle results into per-player memory slots
+  btlPlayerStats.forEach((st, i) => {
+    const prevNet = btlPlayerMemory[i] ? (btlPlayerMemory[i].netChips || 0) : 0;
+    btlPlayerMemory[i] = { qtable: new Float64Array(st.qtable), epsilon: st.epsilon, raiseMult: st.raiseMult,
+                           netChips: prevNet + (btlPlayers[i] ? btlPlayers[i].chips - BTL_START : 0) };
+  });
+
   btlGeneration  = 0;
   btlAutoRun     = false;
   btlStopFlag    = false;
@@ -3836,11 +3893,13 @@ function startBattle() {
   btlPlayers     = [];
   btlPlayerStats = [];
   for (let i = 0; i < btlNumPlayers; i++) {
+    const mem = btlPlayerMemory[i];
     btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: [], inHand: false, action: '', episode: [] });
     btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0,
-                          raiseMult: 0.75, prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
-                          qtable: new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
-                          epsilon: BTL_EPSILON_START });
+                          raiseMult:  mem ? mem.raiseMult : 0.75,
+                          prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
+                          qtable:  mem ? new Float64Array(mem.qtable) : new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
+                          epsilon: mem ? Math.max(mem.epsilon, 0.10) : BTL_EPSILON_START });
   }
   // Set initial dealer so P1 starts in the chosen position
   const n = btlNumPlayers;
@@ -3877,18 +3936,32 @@ function startBattle() {
   }
 }
 
+function resetBattleLearning() {
+  btlPlayerMemory = Array.from({ length: 8 }, () => null);
+  document.getElementById('resetLearningBtn').style.display = 'none';
+}
+
 function repeatBattle() {
+  // Flush current results into per-player memory slots before resetting chips
+  btlPlayerStats.forEach((st, i) => {
+    const prevNet = btlPlayerMemory[i] ? (btlPlayerMemory[i].netChips || 0) : 0;
+    btlPlayerMemory[i] = { qtable: new Float64Array(st.qtable), epsilon: st.epsilon, raiseMult: st.raiseMult,
+                           netChips: prevNet + (btlPlayers[i] ? btlPlayers[i].chips - BTL_START : 0) };
+  });
+
   btlStopFlag    = false;
   btlHandNum     = 0;
   btlLogLines    = [];
   btlPlayers     = [];
   btlPlayerStats = [];
   for (let i = 0; i < btlNumPlayers; i++) {
+    const mem = btlPlayerMemory[i];
     btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: [], inHand: false, action: '', episode: [] });
     btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0,
-                          raiseMult: 0.75, prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
-                          qtable: new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
-                          epsilon: BTL_EPSILON_START });
+                          raiseMult:  mem ? mem.raiseMult : 0.75,
+                          prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
+                          qtable:  mem ? new Float64Array(mem.qtable) : new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
+                          epsilon: mem ? Math.max(mem.epsilon, 0.10) : BTL_EPSILON_START });
   }
   // btlFixedComm and btlSavedHoles already set from previous startBattle — reuse same board and P1 cards
   btlDealHoleCards(); // deal initial hole cards
@@ -4039,6 +4112,100 @@ function renderLiveStrategy() {
   }
 
   el.innerHTML = html;
+}
+
+let btlResultContexts = {}; // playerIdx → handsCtx for stratSummary on results page
+
+function getLearnedStat(i) {
+  return (i < btlPlayerStats.length ? btlPlayerStats[i] : null) || btlPlayerMemory[i] || null;
+}
+
+function renderStratGrid(st, pName, pCol) {
+  if (!st || !st.qtable) return '';
+  const STREET_NM = ['Pre-flop', 'Flop', 'Turn', 'River'];
+  const STR_NM    = ['Weak', 'Fair', 'Med', 'Good', 'Strong'];
+  const ACT_LBLS  = ['F', 'C', 'R'];
+  const ACT_COLS  = ['var(--loss)', 'var(--win)', 'var(--gold)'];
+  const qt = st.qtable;
+  const potCell = (si, sb, pb) => {
+    const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
+    const qs   = [qt[base], qt[base+1], qt[base+2]];
+    if (qs.every(q => Math.abs(q) < 0.0001)) return `<span style="color:var(--muted)">·</span>`;
+    const best = qs.indexOf(Math.max(...qs));
+    return `<span style="color:${ACT_COLS[best]};font-weight:700">${ACT_LBLS[best]}</span>`;
+  };
+  let g = `<div style="color:${pCol};font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">${pName} · Learned Strategy</div>` +
+    `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:10px">` +
+    `Action per hand strength &amp; pot size (small · med · big)&emsp;` +
+    `<span style="color:var(--loss)">F</span>=Fold &nbsp;` +
+    `<span style="color:var(--win)">C</span>=Call &nbsp;` +
+    `<span style="color:var(--gold)">R</span>=Raise` +
+    `</div>` +
+    `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem">` +
+    `<thead><tr><th style="text-align:left;color:var(--muted);font-weight:400;padding:3px 6px 6px 0;min-width:60px"></th>`;
+  STR_NM.forEach(s => { g += `<th style="text-align:center;color:var(--muted);font-weight:400;padding:3px 4px 6px">${s}</th>`; });
+  g += `</tr></thead><tbody>`;
+  STREET_NM.forEach((street, si) => {
+    g += `<tr style="border-top:1px solid var(--border)">`;
+    g += `<td style="color:var(--text);padding:6px 6px 6px 0;font-weight:600;white-space:nowrap">${street}</td>`;
+    for (let sb = 0; sb < 5; sb++) {
+      g += `<td style="text-align:center;padding:6px 4px;letter-spacing:1px">` +
+        potCell(si, sb, 0) + `<span style="color:var(--muted)"> · </span>` +
+        potCell(si, sb, 1) + `<span style="color:var(--muted)"> · </span>` +
+        potCell(si, sb, 2) + `</td>`;
+    }
+    g += `</tr>`;
+  });
+  g += `</tbody></table></div>` +
+    `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
+  return g;
+}
+
+function showLearnedStratFor(playerIdx) {
+  const st  = getLearnedStat(playerIdx);
+  if (!st) return;
+  const mem   = btlPlayerMemory[playerIdx];
+  const pName = `P${playerIdx + 1}`;
+  const pCol  = BTL_COLS[playerIdx % BTL_COLS.length];
+  const content = document.getElementById('learnedStratContent');
+  if (!content) return;
+
+  // Net score banner — previous battles (mem) + current battle if player participated
+  const prevNet    = mem ? (mem.netChips || 0) : 0;
+  const curDelta   = (playerIdx < btlPlayers.length) ? btlPlayers[playerIdx].chips - BTL_START : 0;
+  const net        = prevNet + curDelta;
+  const netStr = net >= 0 ? `+${net}` : `${net}`;
+  const netCol = net > 0 ? 'var(--win)' : net < 0 ? 'var(--loss)' : 'var(--muted)';
+  const netBanner = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;` +
+    `padding:8px 12px;background:var(--panel2);border-radius:8px;border:1px solid var(--border)">` +
+    `<span style="color:${pCol};font-size:0.72rem;font-weight:700;letter-spacing:1px">${pName}</span>` +
+    `<span style="color:var(--muted);font-size:0.68rem">Net chips across all battles</span>` +
+    `<span style="margin-left:auto;font-size:1rem;font-weight:800;color:${netCol}">${netStr}</span>` +
+    `</div>`;
+
+  content.innerHTML = netBanner + renderStratGrid(st, pName, pCol) +
+    stratSummary(st, pName, pCol, btlResultContexts[playerIdx] || null);
+  for (let i = 0; i < 8; i++) {
+    const btn = document.getElementById(`learnBtn${i}`);
+    if (btn) btn.style.background = i === playerIdx ? 'rgba(255,255,255,0.07)' : 'transparent';
+  }
+}
+
+function renderLearnedStratSection(defaultIdx) {
+  let html = `<hr class="div" style="margin:18px 0">` +
+    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Learned Player Strategy</div>` +
+    `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">`;
+  for (let i = 0; i < 8; i++) {
+    const has = !!getLearnedStat(i);
+    const col = BTL_COLS[i % BTL_COLS.length];
+    html += `<button onclick="showLearnedStratFor(${i})" id="learnBtn${i}" ` +
+      `style="padding:6px 14px;border-radius:20px;font-size:0.72rem;font-weight:700;letter-spacing:1px;` +
+      `border:1px solid ${has ? col : 'var(--border)'};color:${has ? col : 'var(--muted)'};` +
+      `background:${i === defaultIdx ? 'rgba(255,255,255,0.07)' : 'transparent'};` +
+      `cursor:${has ? 'pointer' : 'default'};opacity:${has ? '1' : '0.35'}">P${i+1}</button>`;
+  }
+  html += `</div><div id="learnedStratContent"></div>`;
+  return html;
 }
 
 function stratSummary(st, pName, pCol, handsCtx) {
@@ -4222,39 +4389,6 @@ function showH2HResults() {
     return `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:32px;height:46px;background:#fff;border-radius:5px;font-size:0.68rem;font-weight:800;color:${col==='red'?'#c00':'#111'};line-height:1.1;box-shadow:0 2px 8px rgba(0,0,0,0.5)">${r}<span style="font-size:0.75rem">${s}</span></span>`;
   }).join('');
 
-  const STREET_NM = ['Pre-flop', 'Flop', 'Turn', 'River'];
-  const STR_NM    = ['Weak', 'Fair', 'Med', 'Good', 'Strong'];
-  const ACT_LBLS  = ['F', 'C', 'R'];
-  const ACT_COLS  = ['var(--loss)', 'var(--win)', 'var(--gold)'];
-
-  const stratGrid = (st, pName, pCol) => {
-    const potCell = (si, sb, pb) => {
-      const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
-      const qs   = [st.qtable[base], st.qtable[base+1], st.qtable[base+2]];
-      if (qs.every(q => Math.abs(q) < 0.0001)) return `<span style="color:var(--muted)">·</span>`;
-      const best = qs.indexOf(Math.max(...qs));
-      return `<span style="color:${ACT_COLS[best]};font-weight:700">${ACT_LBLS[best]}</span>`;
-    };
-    let g = `<div style="color:${pCol};font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">${pName} · Learned Strategy</div>` +
-      `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem">` +
-      `<thead><tr><th style="text-align:left;color:var(--muted);font-weight:400;padding:3px 6px 6px 0;min-width:60px"></th>`;
-    STR_NM.forEach(s => { g += `<th style="text-align:center;color:var(--muted);font-weight:400;padding:3px 4px 6px">${s}</th>`; });
-    g += `</tr></thead><tbody>`;
-    STREET_NM.forEach((street, si) => {
-      g += `<tr style="border-top:1px solid var(--border)">`;
-      g += `<td style="color:var(--text);padding:6px 6px 6px 0;font-weight:600;white-space:nowrap">${street}</td>`;
-      for (let sb = 0; sb < 5; sb++) {
-        g += `<td style="text-align:center;padding:6px 4px;letter-spacing:1px">` +
-          potCell(si, sb, 0) + `<span style="color:var(--muted)"> · </span>` +
-          potCell(si, sb, 1) + `<span style="color:var(--muted)"> · </span>` +
-          potCell(si, sb, 2) + `</td>`;
-      }
-      g += `</tr>`;
-    });
-    g += `</tbody></table></div>`;
-    return g;
-  };
-
   let html =
     // Winner banner
     `<div style="text-align:center;margin-bottom:20px">` +
@@ -4282,23 +4416,21 @@ function showH2HResults() {
     `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
     renderChipChart(btlChipHistory, btlPlayers) +
 
-    // Both learned strategies
-    `<hr class="div" style="margin:18px 0">` +
-    stratGrid(s1, 'P1', BTL_COLS[0]) +
-    stratSummary(s1, 'P1', BTL_COLS[0], wIdx === 0 && !tied ? { played: btlHandNum, total: btlTotalHands, allDefeated: p2.chips === 0, opponents: 1 } : null) +
-    `<hr class="div" style="margin:14px 0">` +
-    stratGrid(s2, 'P2', BTL_COLS[1]) +
-    stratSummary(s2, 'P2', BTL_COLS[1], wIdx === 1 && !tied ? { played: btlHandNum, total: btlTotalHands, allDefeated: p1.chips === 0, opponents: 1 } : null) +
-    `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
+    renderLearnedStratSection(tied ? 0 : wIdx);
+
+  btlResultContexts = {};
+  if (!tied) btlResultContexts[wIdx] = { played: btlHandNum, total: btlTotalHands, allDefeated: (wIdx === 0 ? p2 : p1).chips === 0, opponents: 1 };
 
   const converged = btlAllConverged();
   if (!converged && !btlStopFlag) { continueBattle(); return; }
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
+  document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
   document.getElementById('convergedMsg').style.display = converged ? '' : 'none';
   document.getElementById('battleResultSubtitle').textContent =
     'Head to Head · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged ? ' · CONVERGED' : '');
   showScreen('battleResultScreen');
+  showLearnedStratFor(tied ? 0 : wIdx);
 }
 
 function renderChipChart(history, players) {
@@ -4402,68 +4534,13 @@ function showBattleResults() {
       `</div>`;
   });
 
-  // Winner's action history
   const winner  = sorted[0];
   const winIdx  = btlPlayers.indexOf(winner);
-  const st      = btlPlayerStats[winIdx] || {};
-  const total   = (st.fold || 0) + (st.check || 0) + (st.call || 0) + (st.raise || 0);
-  const pct     = n => total > 0 ? ` (${Math.round(n/total*100)}%)` : '';
-  const winPct  = st.played > 0 ? Math.round(st.won / st.played * 100) : 0;
 
-  const winnerLog = btlLogLines.filter(l => l.includes(winner.name)).slice(-20);
-
-  // ── Learned strategy grid ──────────────────────────────────────────────────
-  {
-    const STREET_NM = ['Pre-flop', 'Flop', 'Turn', 'River'];
-    const STR_NM    = ['Weak', 'Fair', 'Med', 'Good', 'Strong'];
-    const ACT_LBLS  = ['F', 'C', 'R'];
-    const ACT_COLS  = ['var(--loss)', 'var(--win)', 'var(--gold)'];
-
-    const potCell = (si, sb, pb) => {
-      const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
-      const qs   = [st.qtable[base], st.qtable[base+1], st.qtable[base+2]];
-      if (qs.every(q => Math.abs(q) < 0.0001)) return `<span style="color:var(--muted)">·</span>`;
-      const best = qs.indexOf(Math.max(...qs));
-      return `<span style="color:${ACT_COLS[best]};font-weight:700">${ACT_LBLS[best]}</span>`;
-    };
-
-    let sg = `<hr class="div" style="margin:18px 0">` +
-      `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Winner · <span style="color:${BTL_COLS[winIdx % BTL_COLS.length]}">${winner.name}</span> · Learned Strategy</div>` +
-      `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:10px">` +
-        `Action per hand strength &amp; pot size (small · med · big)&emsp;` +
-        `<span style="color:var(--loss)">F</span>=Fold &nbsp;` +
-        `<span style="color:var(--win)">C</span>=Call &nbsp;` +
-        `<span style="color:var(--gold)">R</span>=Raise` +
-      `</div>` +
-      `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem">` +
-      `<thead><tr><th style="text-align:left;color:var(--muted);font-weight:400;padding:3px 6px 6px 0;min-width:60px"></th>`;
-
-    STR_NM.forEach(s => {
-      sg += `<th style="text-align:center;color:var(--muted);font-weight:400;padding:3px 4px 6px">${s}</th>`;
-    });
-    sg += `</tr></thead><tbody>`;
-
-    STREET_NM.forEach((street, si) => {
-      sg += `<tr style="border-top:1px solid var(--border)">`;
-      sg += `<td style="color:var(--text);padding:6px 6px 6px 0;font-weight:600;white-space:nowrap">${street}</td>`;
-      for (let sb = 0; sb < 5; sb++) {
-        sg += `<td style="text-align:center;padding:6px 4px;letter-spacing:1px">` +
-          potCell(si, sb, 0) +
-          `<span style="color:var(--muted)"> · </span>` +
-          potCell(si, sb, 1) +
-          `<span style="color:var(--muted)"> · </span>` +
-          potCell(si, sb, 2) +
-          `</td>`;
-      }
-      sg += `</tr>`;
-    });
-
-    sg += `</tbody></table></div>` +
-      `<div style="font-size:0.6rem;color:var(--muted);margin-top:6px">· = state not encountered during battle</div>`;
-
-    const allDefeated = sorted.slice(1).every(p => p.chips === 0);
-    html += sg + stratSummary(st, winner.name, BTL_COLS[winIdx % BTL_COLS.length], { played: btlHandNum, total: btlTotalHands, allDefeated, opponents: btlPlayers.length - 1 });
-  }
+  // ── Learned strategy section (player selector) ────────────────────────────
+  btlResultContexts = {};
+  btlResultContexts[winIdx] = { played: btlHandNum, total: btlTotalHands, allDefeated: sorted.slice(1).every(p => p.chips === 0), opponents: btlPlayers.length - 1 };
+  html += renderLearnedStratSection(winIdx);
 
   // Chip evolution chart
   html +=
@@ -4472,29 +4549,17 @@ function showBattleResults() {
     `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
     renderChipChart(btlChipHistory, btlPlayers);
 
-  html +=
-    `<hr class="div" style="margin:18px 0">` +
-    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Winner · <span style="color:${BTL_COLS[winIdx % BTL_COLS.length]}">${winner.name}</span> · Action History</div>` +
-    `<div style="font-size:0.8rem;line-height:2;margin-bottom:12px">` +
-      `<span style="color:var(--muted)">Hands:</span> <b>${st.played}</b> played · <b style="color:var(--win)">${st.won}</b> won (${winPct}%)<br>` +
-      `<span style="color:var(--loss)">Fold</span> ${st.fold}${pct(st.fold)} &nbsp;` +
-      `<span style="color:var(--muted)">Check</span> ${st.check}${pct(st.check)} &nbsp;` +
-      `<span style="color:var(--win)">Call</span> ${st.call}${pct(st.call)} &nbsp;` +
-      `<span style="color:var(--gold)">Raise</span> ${st.raise}${pct(st.raise)}` +
-    `</div>` +
-    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Recent actions</div>` +
-    `<div style="font-size:0.7rem;color:var(--muted);line-height:1.8;max-height:130px;overflow-y:auto;font-family:monospace;background:var(--panel2);padding:8px 10px;border-radius:8px">` +
-      (winnerLog.length ? winnerLog.join('<br>') : '—') +
-    `</div>`;
 
   const converged2 = btlAllConverged();
   if (!converged2 && !btlStopFlag) { continueBattle(); return; }
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
+  document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
   document.getElementById('convergedMsg').style.display = converged2 ? '' : 'none';
   document.getElementById('battleResultSubtitle').textContent =
     'AI Battle · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged2 ? ' · CONVERGED' : '');
   showScreen('battleResultScreen');
+  showLearnedStratFor(winIdx);
 }
 
 
@@ -4615,6 +4680,7 @@ function showBattleResults() {
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
     <button class="btn btn-outline" id="repeatBattleBtn" style="margin-top:10px;display:none" onclick="repeatBattle()">REPEAT (same cards)</button>
+    <button class="btn btn-outline" id="resetLearningBtn" style="margin-top:10px;display:none;border-color:var(--loss);color:var(--loss)" onclick="resetBattleLearning()">RESET LEARNING</button>
   </div>
 </div>
 
@@ -4657,7 +4723,7 @@ function showBattleResults() {
     <div id="convergedMsg" style="display:none;margin-top:18px;padding:12px 14px;background:var(--panel2);border:1px solid var(--border);border-left:3px solid #4caf50;border-radius:10px;font-size:0.82rem;color:#4caf50;text-align:center;letter-spacing:0.5px">
       All players have converged (ε = 0.05). The strategy heatmap above shows the ultimate learned strategy.
     </div>
-    <button class="btn btn-gold"     style="margin-top:20px"  onclick="showScreen('battleSetupScreen')">PLAY AGAIN</button>
+    <button class="btn btn-gold"     style="margin-top:20px"  onclick="goBattleSetup()">PLAY AGAIN</button>
     <button class="btn btn-outline"  style="margin-top:10px"  onclick="goSetup()">MAIN MENU</button>
   </div>
 </div>
