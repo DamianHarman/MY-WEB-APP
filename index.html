@@ -282,6 +282,36 @@
       margin-top: 10px;
     }
 
+    /* ── Welcome overlay ── */
+    .welcome-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.80);
+      z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .welcome-modal {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      max-width: 400px; width: 100%;
+    }
+    .welcome-modal h2 {
+      color: var(--gold); font-size: 1.4rem; letter-spacing: 3px;
+      text-align: center; margin-bottom: 4px;
+    }
+    .welcome-modal .wm-sub {
+      color: var(--muted); font-size: 0.72rem; letter-spacing: 1.5px;
+      text-transform: uppercase; text-align: center; margin-bottom: 20px;
+    }
+    .welcome-modal .wm-item {
+      padding: 9px 0; border-bottom: 1px solid var(--border);
+      font-size: 0.84rem; line-height: 1.5;
+    }
+    .welcome-modal .wm-item:last-of-type { border-bottom: none; }
+    .welcome-modal .wm-item strong { color: var(--gold); }
+
 /* ── Button ── */
     .btn {
       display: block;
@@ -890,11 +920,24 @@
   </div>
 </div>
 
+<!-- ── Welcome Modal ─────────────────────────────────────────────────────── -->
+<div id="welcomeOverlay" class="welcome-overlay" style="display:none" onclick="dismissWelcome()">
+  <div class="welcome-modal" onclick="event.stopPropagation()">
+    <h2>POKER SIM</h2>
+    <p class="wm-sub">What would you like to do?</p>
+    <div class="wm-item"><strong>Simulate</strong> — run thousands of Monte Carlo hands, see your hole cards' win rate vs random or picked opponents</div>
+    <div class="wm-item"><strong>Leaderboard</strong> — see which hole cards perform best after running many simulations</div>
+    <div class="wm-item"><strong>Hand Play Guide</strong> — deal a hand street by street and get action advice with outs</div>
+    <div class="wm-item"><strong>AI Battle</strong> — watch Q-learning AI players compete and evolve strategy over hundreds of hands</div>
+    <button class="btn btn-gold" style="margin-top:20px" onclick="dismissWelcome()">LET'S PLAY</button>
+  </div>
+</div>
+
 <!-- ── Setup ─────────────────────────────────────────────────────────────── -->
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v35</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v36</p>
 
   <div class="panel">
 
@@ -1054,6 +1097,18 @@
               <button class="chip on" onclick="pickRange(this,20)">Top 20%</button>
               <button class="chip"    onclick="pickRange(this,30)">Top 30%</button>
               <button class="chip"    onclick="pickRange(this,50)">Top 50%</button>
+              <button class="chip"    id="customRangeBtn" onclick="toggleCustomRange(this)">Custom…</button>
+            </div>
+            <div id="customRangeDiv" style="display:none;margin-top:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                <span style="font-size:0.68rem;color:var(--muted)">Gold=pair · Green=suited · Blue=offsuit</span>
+                <div style="display:flex;gap:6px">
+                  <button class="chip" style="font-size:0.65rem;padding:4px 8px" onclick="selectAllCustomRange()">All</button>
+                  <button class="chip" style="font-size:0.65rem;padding:4px 8px" onclick="clearCustomRange()">Clear</button>
+                </div>
+              </div>
+              <div id="customRangeGrid" style="overflow-x:auto"></div>
+              <div id="customRangeCount" style="font-size:0.72rem;color:var(--muted);margin-top:6px;text-align:center">No hands selected</div>
             </div>
           </div>
         </div>
@@ -1103,13 +1158,30 @@
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v35</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v36</span>
           <span style="color:var(--muted);font-size:0.68rem">Current</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Battle runs until one player holds all the chips — no hand limit, true elimination mode.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Eliminated players are no longer dealt cards.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5">Results screen redesigned — two columns: This Battle standings vs All Battles progressive totals.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Hand Guide — live equity:</strong> each street now shows your win % vs one opponent, calculated on the spot.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Hand Guide — out cards:</strong> flush and straight outs are displayed as actual card chips, not just a count.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Custom range picker:</strong> in Pick vs → Range mode, tap "Custom…" to build any opponent hand range using a 13×13 hand matrix (pairs, suited, offsuit).</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Biggest Pots:</strong> results screen now lists the top 3 largest pots of the battle — hand number, winner, and hand made.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — sharper AI:</strong> pre-flop hand strength now uses 5 distinct tiers (JJ–AA / 77–TT / small pairs / premium non-pairs / marginal hands), so AK and A2 are no longer treated identically.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Leaderboard — confidence warnings:</strong> entries with fewer than 1,000 hands show a ⚠ to flag low statistical reliability.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Live strategy legend:</strong> the battle run screen now explains F/C/R and hand-strength column abbreviations inline.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Welcome screen:</strong> first launch shows a brief explainer of each mode.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Bug fix:</strong> board cards are now correctly validated against picked hole cards before simulating.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v35</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Battle runs until one player holds all the chips — no hand limit, true elimination mode.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Eliminated players are no longer dealt cards.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Results screen redesigned — two columns: This Battle standings vs All Battles progressive totals.</li>
         </ul>
       </div>
 
@@ -1474,6 +1546,8 @@ let lastAnalysisPhases = [];
 let cancelFlag   = false;
 let oppMode      = 'specific'; // 'specific' | 'range'
 let rangePercent = 20;
+let customRangeEnabled = false;
+let customRangeSet = new Set();
 let boardMode    = 'none';     // 'none' | 'flop' | 'turn' | 'river'
 let boardSlots   = [];         // [{rank, suit}, ...]
 
@@ -1596,7 +1670,9 @@ function runHand(numOpp) {
 function runHandPickVs() {
   let actOppCards = oppCards;
   if (oppMode === 'range') {
-    const drawn = drawFromRange(rangePercent, [...myCards, ...boardSlots]);
+    const drawn = (customRangeEnabled && customRangeSet.size > 0)
+      ? drawFromCustomRange([...myCards, ...boardSlots])
+      : drawFromRange(rangePercent, [...myCards, ...boardSlots]);
     if (!drawn) { ties++; return; }
     actOppCards = drawn;
   }
@@ -1807,11 +1883,11 @@ function startSim() {
       const c3 = getPickedCard('rank3', 'suit3');
       const c4 = getPickedCard('rank4', 'suit4');
       const all = [c1, c2, c3, c4, ...boardSlots];
-      for (let i = 0; i < 4; i++) {
-        for (let j = i + 1; j < 4; j++) {
+      for (let i = 0; i < all.length; i++) {
+        for (let j = i + 1; j < all.length; j++) {
           if (eqCard(all[i], all[j])) {
             document.getElementById('pickerError').textContent =
-              'Duplicate card — please choose four different cards.';
+              'Duplicate card — hole cards and board must all be different.';
             return;
           }
         }
@@ -2034,7 +2110,9 @@ function showPickVsResults() {
   document.getElementById('rLosses').textContent = losses.toLocaleString();
   document.getElementById('rTies').textContent   = ties.toLocaleString();
   document.getElementById('rPct').textContent    = (wr * 100).toFixed(2) + '%';
-  const oppDesc = oppMode === 'range' ? ` vs top ${rangePercent}% range` : ' · heads-up';
+  const oppDesc = oppMode === 'range'
+    ? (customRangeEnabled && customRangeSet.size > 0 ? ` vs custom range (${customRangeSet.size} types)` : ` vs top ${rangePercent}% range`)
+    : ' · heads-up';
   document.getElementById('rSub').textContent    =
     `${total.toLocaleString()} boards${oppDesc}`;
   document.getElementById('resBar').innerHTML =
@@ -2047,7 +2125,9 @@ function showPickVsResults() {
 
   const _c1 = myCards[0], _c2 = myCards[1];
   const _hand = `${RANK_SYM[_c1.rank-2]}${SUIT_SYM[_c1.suit]}${RANK_SYM[_c2.rank-2]}${SUIT_SYM[_c2.suit]}`;
-  const _oppDesc = oppMode === 'range' ? `vs top ${rangePercent}% range` : 'heads-up';
+  const _oppDesc = oppMode === 'range'
+    ? (customRangeEnabled && customRangeSet.size > 0 ? `vs custom range (${customRangeSet.size} types)` : `vs top ${rangePercent}% range`)
+    : 'heads-up';
   lastResultText = `Poker Sim — ${_hand} ${_oppDesc}: ${(wr * 100).toFixed(2)}% win (${wins.toLocaleString()}W / ${losses.toLocaleString()}L / ${ties.toLocaleString()}T) · ${totalIter.toLocaleString()} iterations`;
   renderLbRank(myCards);
 
@@ -2066,7 +2146,11 @@ function saveToHistory(entry) {
   const hist = loadHistory();
   hist.unshift(entry);
   if (hist.length > 2000) hist.length = 2000;
-  localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+  try {
+    localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+  } catch(e) {
+    console.warn('Poker Sim: history storage full — entry not saved.');
+  }
 }
 
 function clearHistory() {
@@ -2091,7 +2175,11 @@ function initSeedData() {
 function saveLbEntry(entry) {
   const entries = loadLbEntries();
   entries.push(entry);
-  localStorage.setItem(LB_KEY, JSON.stringify(entries));
+  try {
+    localStorage.setItem(LB_KEY, JSON.stringify(entries));
+  } catch(e) {
+    console.warn('Poker Sim: leaderboard storage full — matrix entry not saved.');
+  }
 }
 
 function fmtIter(n) {
@@ -2200,7 +2288,7 @@ function renderBoard(numOpp, listId) {
           <span class="${SUIT_COL[c1.suit]}">${RANK_SYM[c1.rank-2]}${SUIT_SYM[c1.suit]}</span>
           <span class="${SUIT_COL[c2.suit]}">${RANK_SYM[c2.rank-2]}${SUIT_SYM[c2.suit]}</span>
         </div>
-        <div class="lb-pct">${(e.winRate * 100).toFixed(2)}%</div>
+        <div class="lb-pct">${(e.winRate * 100).toFixed(2)}%${e.total < 1000 ? `<span title="Low sample size (${e.total.toLocaleString()} hands) — run more iterations for accuracy" style="font-size:0.68rem;color:var(--muted);margin-left:4px;cursor:help">⚠</span>` : ''}</div>
       </div>
     </div>`;
   }).join('');
@@ -2924,6 +3012,61 @@ function guideCountOuts(holeCards, board) {
   return outs;
 }
 
+// Quick 1000-iteration equity estimate vs one random opponent
+function guideEquity(holeCards, board) {
+  const ITERS = 1000;
+  const commNeeded = 5 - board.length;
+  const knownSet = [...holeCards, ...board];
+  const deck = newDeck().filter(c => !knownSet.some(k => eqCard(k, c)));
+  const need = 2 + commNeeded;
+  let w = 0, t = 0;
+  for (let i = 0; i < ITERS; i++) {
+    for (let j = 0; j < need; j++) {
+      const k = j + ((Math.random() * (deck.length - j)) | 0);
+      const tmp = deck[j]; deck[j] = deck[k]; deck[k] = tmp;
+    }
+    const oppHole  = [deck[0], deck[1]];
+    const fullBoard = commNeeded > 0 ? [...board, ...deck.slice(2, 2 + commNeeded)] : board;
+    const d = cmpScore(bestOf7([...holeCards, ...fullBoard]), bestOf7([...oppHole, ...fullBoard]));
+    if (d > 0) w++;
+    else if (d === 0) t++;
+  }
+  return Math.round((w + t * 0.5) / ITERS * 100);
+}
+
+// Return the specific cards that would complete flush or straight draws
+function guideGetOutCards(holeCards, board) {
+  const allCards = [...holeCards, ...board];
+  const deck = newDeck().filter(c => !allCards.some(k => eqCard(k, c)));
+  const outCards = [];
+
+  // Flush draw: suit with exactly 4 cards
+  const sc = [0,0,0,0];
+  for (const c of allCards) sc[c.suit]++;
+  const flushSuit = sc.indexOf(4);
+  if (flushSuit !== -1) {
+    deck.filter(c => c.suit === flushSuit)
+        .forEach(c => outCards.push({ card: c, type: 'flush' }));
+  }
+
+  // Straight draw: find a 4-card window
+  const rankSet = new Set(allCards.map(c => c.rank));
+  if (rankSet.has(14)) rankSet.add(1);
+  for (let lo = 1; lo <= 10; lo++) {
+    const cnt = [lo, lo+1, lo+2, lo+3, lo+4].filter(r => rankSet.has(r)).length;
+    if (cnt === 4) {
+      const missing = [lo, lo+1, lo+2, lo+3, lo+4].find(r => !rankSet.has(r));
+      if (missing !== undefined) {
+        const targetRank = missing === 1 ? 14 : missing;
+        deck.filter(c => c.rank === targetRank && !outCards.some(o => eqCard(o.card, c)))
+            .forEach(c => outCards.push({ card: c, type: 'straight' }));
+      }
+      break;
+    }
+  }
+  return outCards;
+}
+
 function guideBoardTexture(board) {
   const sc = [0,0,0,0];
   const rc = {};
@@ -2996,12 +3139,42 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
     'FOLD/CHECK': 'fold', 'FOLD': 'fold',
   }[action] || 'check';
 
+  const equity = guideHoleCards.length === 2 ? guideEquity(guideHoleCards, guideBoard) : null;
+  const outCards = (!isRiver && guideHoleCards.length === 2) ? guideGetOutCards(guideHoleCards, guideBoard) : [];
+
+  // Render out cards as mini card chips
+  let outCardsHtml = '';
+  if (outCards.length > 0) {
+    const cardChip = c => {
+      const col = (c.suit === 1 || c.suit === 2) ? '#c00' : '#111';
+      return `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;` +
+        `width:22px;height:31px;background:#fff;border-radius:3px;font-size:0.5rem;font-weight:800;` +
+        `color:${col};line-height:1.1;margin:2px;box-shadow:0 1px 4px rgba(0,0,0,0.4)">` +
+        `${RANK_SYM[c.rank-2]}<span style="font-size:0.6rem">${SUIT_SYM[c.suit]}</span></span>`;
+    };
+    const flushOuts    = outCards.filter(o => o.type === 'flush');
+    const straightOuts = outCards.filter(o => o.type === 'straight');
+    if (flushOuts.length)
+      outCardsHtml += `<div style="margin-top:8px"><div style="font-size:0.64rem;color:var(--muted);margin-bottom:3px">Flush outs (${flushOuts.length})</div><div style="display:flex;flex-wrap:wrap">${flushOuts.map(o => cardChip(o.card)).join('')}</div></div>`;
+    if (straightOuts.length)
+      outCardsHtml += `<div style="margin-top:8px"><div style="font-size:0.64rem;color:var(--muted);margin-bottom:3px">Straight outs (${straightOuts.length})</div><div style="display:flex;flex-wrap:wrap">${straightOuts.map(o => cardChip(o.card)).join('')}</div></div>`;
+  }
+
+  const equityHtml = equity !== null
+    ? `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">` +
+      `<span style="font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Equity vs 1 opp</span>` +
+      `<span style="font-size:1.1rem;font-weight:800;color:${equity >= 50 ? 'var(--win)' : 'var(--loss)'}">${equity}%</span>` +
+      `</div>`
+    : '';
+
   el.innerHTML = `
+    ${equityHtml}
     <div class="guide-advice-hand">${handName}${texture ? ` <span class="guide-tier-lbl">· Board: ${texture}</span>` : ''}</div>
     <div class="guide-advice-row">
       <span class="action-badge ${badgeClass}">${action}</span>
     </div>
     <div class="guide-advice-text">${explanation}</div>
+    ${outCardsHtml}
   `;
   el.style.display = 'block';
 }
@@ -3031,6 +3204,122 @@ function pickRange(btn, pct) {
   rangePercent = pct;
   document.querySelectorAll('#rangeChips .chip').forEach(b => b.classList.remove('on'));
   btn.classList.add('on');
+  // Disable custom range when a % range is chosen
+  if (customRangeEnabled) {
+    customRangeEnabled = false;
+    const cb = document.getElementById('customRangeBtn');
+    if (cb) cb.classList.remove('on');
+    const div = document.getElementById('customRangeDiv');
+    if (div) div.style.display = 'none';
+    const chips = document.getElementById('rangeChips');
+    if (chips) { chips.style.opacity = ''; chips.style.pointerEvents = ''; }
+  }
+}
+
+const RANGE_RANKS = [14,13,12,11,10,9,8,7,6,5,4,3,2];
+const RANGE_SYMS  = ['A','K','Q','J','T','9','8','7','6','5','4','3','2'];
+
+function toggleCustomRange(btn) {
+  customRangeEnabled = !customRangeEnabled;
+  const div   = document.getElementById('customRangeDiv');
+  const chips = document.getElementById('rangeChips');
+  if (customRangeEnabled) {
+    btn.classList.add('on');
+    div.style.display = 'block';
+    chips.style.opacity = '0.4';
+    chips.style.pointerEvents = 'none';
+    if (!document.getElementById('customRangeGrid').innerHTML) buildCustomRangeGrid();
+  } else {
+    btn.classList.remove('on');
+    div.style.display = 'none';
+    chips.style.opacity = '';
+    chips.style.pointerEvents = '';
+  }
+}
+
+function buildCustomRangeGrid() {
+  const el = document.getElementById('customRangeGrid');
+  let html = `<div style="display:grid;grid-template-columns:14px repeat(13,1fr);gap:2px;font-size:0.46rem;min-width:220px">`;
+  // Header row
+  html += `<div></div>`;
+  RANGE_SYMS.forEach(s => {
+    html += `<div style="text-align:center;color:var(--muted);font-weight:700;padding-bottom:2px;font-size:0.5rem">${s}</div>`;
+  });
+  RANGE_RANKS.forEach((r1, i) => {
+    html += `<div style="display:flex;align-items:center;color:var(--muted);font-weight:700;font-size:0.5rem">${RANGE_SYMS[i]}</div>`;
+    RANGE_RANKS.forEach((r2, j) => {
+      let key, lbl, baseBg, onBg, onCol;
+      if (i === j) {
+        key = `${r1}-${r1}`; lbl = `${RANGE_SYMS[i]}${RANGE_SYMS[i]}`;
+        baseBg = '#2a3a2a'; onBg = 'var(--gold)'; onCol = '#000';
+      } else if (i < j) {
+        // Upper triangle: suited (r1 > r2)
+        key = `${r1}-${r2}s`; lbl = `${RANGE_SYMS[i]}${RANGE_SYMS[j]}`;
+        baseBg = '#1a2e1a'; onBg = '#3a8040'; onCol = '#fff';
+      } else {
+        // Lower triangle: offsuit (r2 > r1)
+        key = `${r2}-${r1}o`; lbl = `${RANGE_SYMS[j]}${RANGE_SYMS[i]}`;
+        baseBg = '#1a1a2e'; onBg = '#5050a0'; onCol = '#fff';
+      }
+      const on = customRangeSet.has(key);
+      html += `<div onclick="toggleRangeCell('${key}')" data-rkey="${key}"` +
+        ` style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;` +
+        `border-radius:2px;cursor:pointer;font-weight:700;` +
+        `background:${on ? onBg : baseBg};color:${on ? onCol : 'var(--muted)'};` +
+        `border:1px solid ${on ? 'transparent' : 'var(--border)'};` +
+        `font-size:0.38rem;line-height:1;user-select:none">${lbl}</div>`;
+    });
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+  updateCustomRangeCount();
+}
+
+function toggleRangeCell(key) {
+  if (customRangeSet.has(key)) customRangeSet.delete(key);
+  else customRangeSet.add(key);
+  buildCustomRangeGrid();
+}
+
+function clearCustomRange() {
+  customRangeSet.clear();
+  buildCustomRangeGrid();
+}
+
+function selectAllCustomRange() {
+  RANGE_RANKS.forEach((r1, i) => {
+    RANGE_RANKS.forEach((r2, j) => {
+      if (i === j) customRangeSet.add(`${r1}-${r1}`);
+      else if (i < j) customRangeSet.add(`${r1}-${r2}s`);
+      else customRangeSet.add(`${r2}-${r1}o`);
+    });
+  });
+  buildCustomRangeGrid();
+}
+
+function updateCustomRangeCount() {
+  const el = document.getElementById('customRangeCount');
+  if (!el) return;
+  const n = customRangeSet.size;
+  el.textContent = n === 0 ? 'No hands selected — tap cells above' : `${n} hand type${n !== 1 ? 's' : ''} selected`;
+}
+
+function drawFromCustomRange(excludeCards) {
+  const fullDeck = newDeck();
+  const combos = [];
+  for (let i = 0; i < fullDeck.length; i++) {
+    for (let j = i + 1; j < fullDeck.length; j++) {
+      const a = fullDeck[i], b = fullDeck[j];
+      if (excludeCards.some(e => eqCard(e, a) || eqCard(e, b))) continue;
+      const hi = a.rank >= b.rank ? a.rank : b.rank;
+      const lo = a.rank <= b.rank ? a.rank : b.rank;
+      const suited = a.suit === b.suit;
+      const key = hi === lo ? `${hi}-${lo}` : suited ? `${hi}-${lo}s` : `${hi}-${lo}o`;
+      if (customRangeSet.has(key)) combos.push([a, b]);
+    }
+  }
+  if (!combos.length) return null;
+  return combos[(Math.random() * combos.length) | 0];
 }
 
 // ─── Hand ranking (Chen formula) for range mode ───────────────────────────────
@@ -3265,6 +3554,18 @@ function showResults(numOpp) {
 
 initSeedData();
 
+// First-visit welcome modal
+(function() {
+  if (!localStorage.getItem('pokerSimSeen')) {
+    document.getElementById('welcomeOverlay').style.display = 'flex';
+  }
+})();
+
+function dismissWelcome() {
+  document.getElementById('welcomeOverlay').style.display = 'none';
+  try { localStorage.setItem('pokerSimSeen', '1'); } catch(e) {}
+}
+
 // Restore last iteration setting
 (function() {
   const saved = localStorage.getItem('pokerSimLastIter');
@@ -3321,6 +3622,7 @@ let btlPot         = 0;
 let btlVisible     = 0;    // how many community cards shown in UI
 let btlLogLines    = [];
 let btlChipHistory = []; // [{hand, chips:[]}]
+let btlKeyHands    = []; // top-3 biggest pots [{hand, pot, winner, handName}]
 
 const BTL_START    = 1000;
 const BTL_COLS     = ['#f0c040','#4caf50','#64b5f6','#ff8a65','#ba68c8','#4db6ac'];
@@ -3345,6 +3647,8 @@ function setBtlMode(mode, el) {
     btlNumPlayers = 2;
     pg.style.display = 'none';
   } else {
+    const onChip = document.querySelector('#battlePlayerChips .chip.on');
+    btlNumPlayers = onChip ? parseInt(onChip.textContent) : 4;
     pg.style.display = '';
   }
 }
@@ -3469,8 +3773,21 @@ function btlGetState(playerIdx, streetIdx) {
     const [c1, c2] = p.hole;
     if (!c1 || !c2) { sBucket = 0; }
     else {
-      const suited = c1.suit === c2.suit, pair = c1.rank === c2.rank, hi = Math.max(c1.rank, c2.rank);
-      sBucket = (pair && hi >= 10) ? 4 : (pair || hi === 14) ? 3 : (hi >= 12 || suited) ? 2 : hi >= 9 ? 1 : 0;
+      const suited = c1.suit === c2.suit, pair = c1.rank === c2.rank;
+      const hi = Math.max(c1.rank, c2.rank), lo = Math.min(c1.rank, c2.rank);
+      // Premium: JJ-AA pairs; AK; AQs
+      if      (pair && hi >= 11)                                        sBucket = 4;
+      else if (!pair && hi === 14 && (lo >= 13 || (lo === 12 && suited))) sBucket = 4;
+      // Strong: 77-TT pairs; AJ+; KQs
+      else if (pair && hi >= 7)                                         sBucket = 3;
+      else if (!pair && hi === 14 && lo >= 11)                          sBucket = 3;
+      else if (!pair && hi === 13 && lo === 12 && suited)               sBucket = 3;
+      // Medium: 22-66 pairs; any ace; suited broadway gap≤2
+      else if (pair || hi === 14 || (hi >= 12 && hi - lo <= 2 && suited)) sBucket = 2;
+      // Playable: suited connectors/1-gappers; K or Q high
+      else if ((suited && hi - lo <= 3) || hi >= 12)                   sBucket = 1;
+      // Trash
+      else                                                               sBucket = 0;
     }
   }
 
@@ -3658,6 +3975,11 @@ function btlDoShowdownStep() {
     btlLog(winners.length === 1
       ? `${winners[0].p.name} wins $${btlPot} — ${BTL_HAND_NAMES[best[0]]}`
       : `Split $${btlPot} (${winners.map(w => w.p.name).join('/')}) — ${BTL_HAND_NAMES[best[0]]}`);
+    if (btlPot > 0) {
+      btlKeyHands.push({ hand: btlHandNum, pot: btlPot, winner: winners.length === 1 ? winners[0].p.name : 'Split', handName: BTL_HAND_NAMES[best[0]] });
+      btlKeyHands.sort((a, b) => b.pot - a.pot);
+      if (btlKeyHands.length > 3) btlKeyHands.length = 3;
+    }
   }
   btlPlayers.forEach((p, i) => { if (btlStepDealtIn[i]) btlPlayerStats[i].played++; });
   handWinners.forEach(wp => { const i = btlPlayers.indexOf(wp); if (i >= 0) btlPlayerStats[i].won++; });
@@ -3811,6 +4133,12 @@ function playBattleHand() {
     } else {
       btlLog(`Split $${btlPot} (${winners.map(w => w.p.name).join('/')}) — ${BTL_HAND_NAMES[best[0]]}`);
     }
+    // Track biggest pots for results summary
+    if (btlPot > 0) {
+      btlKeyHands.push({ hand: btlHandNum, pot: btlPot, winner: winners.length === 1 ? winners[0].p.name : 'Split', handName: BTL_HAND_NAMES[best[0]] });
+      btlKeyHands.sort((a, b) => b.pot - a.pot);
+      if (btlKeyHands.length > 3) btlKeyHands.length = 3;
+    }
   }
 
   // Track stats
@@ -3922,6 +4250,7 @@ function startBattle() {
   btlSavedHoles = p1Hole ? [[...p1Hole]] : []; // save P1 picked cards only (opponents get fresh cards each hand)
   btlDealHoleCards(); // deal initial hole cards for first hand
   btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
+  btlKeyHands    = [];
 
   showScreen('battleRunScreen');
   if (btlStepMode) {
@@ -3995,6 +4324,7 @@ function continueBattle() {
   btlGeneration++;
   btlStopFlag   = false;
   btlLogLines   = [];
+  btlKeyHands   = [];
   btlPlayers.forEach(p => {
     p.chips   = BTL_START;
     p.inHand  = false;
@@ -4088,7 +4418,13 @@ function renderLiveStrategy() {
   };
 
   const rowStyle = `display:flex;gap:14px;justify-content:center;margin-bottom:10px`;
-  let html = `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;text-align:center">Live Strategy</div>`;
+  let html = `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;text-align:center">Live Strategy</div>` +
+    `<div style="text-align:center;font-size:0.58rem;color:var(--muted);margin-bottom:8px">` +
+    `<span style="color:var(--loss)">F</span>=Fold &nbsp;` +
+    `<span style="color:var(--win)">C</span>=Call &nbsp;` +
+    `<span style="color:var(--gold)">R</span>=Raise &emsp;` +
+    `Wk=Weak &middot; Fr=Fair &middot; Md=Med &middot; Gd=Good &middot; St=Strong` +
+    `</div>`;
 
   if (btlPlayers.length <= 4) {
     html += `<div style="${rowStyle}">`;
@@ -4555,6 +4891,19 @@ function showBattleResults() {
       `<div style="flex:1">${progHtml}</div>` +
     `</div>`;
 
+  // Biggest pots
+  if (btlKeyHands.length > 0) {
+    html += `<hr class="div" style="margin:16px 0">` +
+      `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Biggest Pots</div>`;
+    btlKeyHands.forEach(kh => {
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">` +
+        `<span style="font-size:0.72rem;color:var(--muted)">Hand ${kh.hand}</span>` +
+        `<span style="font-size:0.78rem;color:var(--text)">${kh.winner} — ${kh.handName}</span>` +
+        `<span style="font-size:0.82rem;font-weight:700;color:var(--gold)">$${kh.pot}</span>` +
+        `</div>`;
+    });
+  }
+
   // Chip evolution chart below
   html +=
     `<hr class="div" style="margin:16px 0">` +
@@ -4692,11 +5041,12 @@ function showBattleResults() {
     <div id="btlHowItWorks" style="display:none;background:var(--panel2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:0.82rem;line-height:1.75;color:var(--muted)">
       <strong style="color:var(--text)">The community board is fixed for the entire battle.</strong> Every hand is played on the same five board cards, so board texture is never a factor. Each player is dealt <em>fresh</em> hole cards every hand — this means they visit weak, medium, and strong hand states on that board, and the AI learns what to do in each case.<br><br>
       <strong style="color:var(--text)">Only the betting strategies evolve.</strong> Each player uses Q-learning to gradually discover better fold / call / raise decisions across all hand-strength and street combinations. Chip swings come purely from strategy, not card luck.<br><br>
+      <strong style="color:var(--text)">Hand strength buckets (pre-flop):</strong> Premium (JJ–AA, AK, AQs) · Strong (77–TT, AJ+, KQs) · Medium (small pairs, any ace, suited broadway) · Playable (suited connectors, K/Q high) · Trash. Post-flop buckets are based on the best 5-card rank you can make with visible cards.<br><br>
       <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player tries a random action instead of using what they've learned. Starts at 0.40 and decays each hand down to 0.05. Low ε means the player is exploiting their learned strategy rather than experimenting. Learning uses discounted returns: river decisions get full credit, earlier streets get progressively less — reflecting that late-street choices are most directly tied to the outcome.<br><br>
       <strong style="color:var(--text)">raise×</strong> is the raise size multiplier. Starts at 0.75 and adapts over time — if raising wins, it nudges up (bet bigger); if raising loses, it nudges down (bet smaller). The Q-table decides <em>whether</em> to raise; raise× decides <em>how much</em>.<br><br>
       <strong style="color:var(--text)">The battle runs until one player holds all the chips.</strong> There is no hand limit — play continues until every other player is eliminated (chips = $0). Eliminated players are not dealt cards. Hit STOP at any time to see current standings.<br><br>
-      <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Weak → Strong). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
-      <strong style="color:var(--text)">Results screen</strong> shows two columns — This Battle (final chips and delta for each player) and All Battles (running net total across every battle played). The chip evolution chart and learned strategy grid appear below.
+      <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Wk · Fr · Md · Gd · St). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
+      <strong style="color:var(--text)">Results screen</strong> shows This Battle standings, All Battles running totals, the top 3 Biggest Pots of the battle, the chip evolution chart, and each player's learned strategy grid.
     </div>
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
