@@ -1158,19 +1158,25 @@
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v36</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v37</span>
           <span style="color:var(--muted);font-size:0.68rem">Current</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Hand Guide — live equity:</strong> each street now shows your win % vs one opponent, calculated on the spot.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Hand Guide — out cards:</strong> flush and straight outs are displayed as actual card chips, not just a count.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Custom range picker:</strong> in Pick vs → Range mode, tap "Custom…" to build any opponent hand range using a 13×13 hand matrix (pairs, suited, offsuit).</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Biggest Pots:</strong> results screen now lists the top 3 largest pots of the battle — hand number, winner, and hand made.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — sharper AI:</strong> pre-flop hand strength now uses 5 distinct tiers (JJ–AA / 77–TT / small pairs / premium non-pairs / marginal hands), so AK and A2 are no longer treated identically.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Leaderboard — confidence warnings:</strong> entries with fewer than 1,000 hands show a ⚠ to flag low statistical reliability.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Live strategy legend:</strong> the battle run screen now explains F/C/R and hand-strength column abbreviations inline.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Welcome screen:</strong> first launch shows a brief explainer of each mode.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Bug fix:</strong> board cards are now correctly validated against picked hole cards before simulating.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — escalating blinds:</strong> blinds double every 50 hands (starting 100/200), ensuring bust-outs happen fast and battles never drag to 10,000+ hands.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — 50,000 starting stacks:</strong> chip counts now use tournament-standard 50k stacks, matching common live tournament formats.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — live blind indicator:</strong> the hand counter shows current blinds in real time (e.g. Blinds 400/800) so you always know which level you're on.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v36</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Hand Guide — live equity per street and out cards shown as card chips.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Custom range picker — build any opponent range using a 13×13 hand matrix.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Battle — Biggest Pots on results screen; sharper pre-flop AI hand strength tiers.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Live strategy legend; leaderboard confidence warnings; welcome screen.</li>
         </ul>
       </div>
 
@@ -3624,12 +3630,17 @@ let btlLogLines    = [];
 let btlChipHistory = []; // [{hand, chips:[]}]
 let btlKeyHands    = []; // top-3 biggest pots [{hand, pot, winner, handName}]
 
-const BTL_START    = 1000;
+const BTL_START    = 50000;
 const BTL_COLS     = ['#f0c040','#4caf50','#64b5f6','#ff8a65','#ba68c8','#4db6ac'];
-const BTL_SB       = 10;
-const BTL_BB       = 20;
 const BTL_MC_ITERS = 500;
-const BTL_RAISE    = 60;   // fixed raise total per street (3× BB)
+
+// Escalating blind schedule — doubles every 50 hands, no cap
+function getBtlBlinds() {
+  const level = Math.floor((Math.max(btlHandNum, 1) - 1) / 50);
+  const bb = 200 * Math.pow(2, level);
+  const sb = bb / 2;
+  return { sb, bb, raise: bb * 3 };
+}
 const BTL_HAND_NAMES = ['High Card','Pair','Two Pair','Trips','Straight','Flush','Full House','Quads','Str. Flush'];
 
 function setBattlePlayers(n, el) {
@@ -3887,7 +3898,7 @@ function btlRunStreet(actFirst, initBet, streetBets, streetIdx) {
       btlLog(`${p.name} calls ${actual}`);
     } else { // raise — size = pot × raiseMult (still adaptive)
       const rm        = st ? st.raiseMult : 0.75;
-      const potBet    = Math.max(BTL_BB * 2, Math.round(btlPot * rm));
+      const potBet    = Math.max(getBtlBlinds().bb * 2, Math.round(btlPot * rm));
       const raiseMore = Math.min(currentBet + potBet - alreadyBet, p.chips);
       p.chips -= raiseMore; streetBets[idx] = alreadyBet + raiseMore; btlPot += raiseMore;
       currentBet = alreadyBet + raiseMore;
@@ -3945,9 +3956,10 @@ function btlBeginHandStep() {
   const streetBets = {};
   btlPlayers.forEach((_, i) => streetBets[i] = 0);
   const sbP = btlPlayers[btlStepSbIdx], bbP = btlPlayers[bbIdx];
-  if (sbP && sbP.inHand) { const a = Math.min(BTL_SB, sbP.chips); sbP.chips -= a; streetBets[btlStepSbIdx] = a; btlPot += a; btlLog(`${sbP.name} posts SB ${a}`); }
-  if (bbP && bbP.inHand) { const a = Math.min(BTL_BB, bbP.chips); bbP.chips -= a; streetBets[bbIdx] = a; btlPot += a; btlLog(`${bbP.name} posts BB ${a}`); }
-  btlRunStreet(utgIdx, BTL_BB, streetBets, 0);
+  const _blinds0 = getBtlBlinds();
+  if (sbP && sbP.inHand) { const a = Math.min(_blinds0.sb, sbP.chips); sbP.chips -= a; streetBets[btlStepSbIdx] = a; btlPot += a; btlLog(`${sbP.name} posts SB ${a}`); }
+  if (bbP && bbP.inHand) { const a = Math.min(_blinds0.bb, bbP.chips); bbP.chips -= a; streetBets[bbIdx] = a; btlPot += a; btlLog(`${bbP.name} posts BB ${a}`); }
+  btlRunStreet(utgIdx, _blinds0.bb, streetBets, 0);
   btlStepPhase = 1;
 }
 
@@ -4066,24 +4078,25 @@ function playBattleHand() {
 
   btlLog(`── Hand ${btlHandNum} ──`);
 
-  // Post blinds
+  // Post blinds (escalating schedule)
+  const blinds = getBtlBlinds();
   const streetBets = {};
   btlPlayers.forEach((_, i) => streetBets[i] = 0);
 
   const sbP = btlPlayers[sbIdx], bbP = btlPlayers[bbIdx];
   if (sbP.inHand) {
-    const amt = Math.min(BTL_SB, sbP.chips);
+    const amt = Math.min(blinds.sb, sbP.chips);
     sbP.chips -= amt; streetBets[sbIdx] = amt; btlPot += amt;
     btlLog(`${sbP.name} posts SB ${amt}`);
   }
   if (bbP.inHand) {
-    const amt = Math.min(BTL_BB, bbP.chips);
+    const amt = Math.min(blinds.bb, bbP.chips);
     bbP.chips -= amt; streetBets[bbIdx] = amt; btlPot += amt;
     btlLog(`${bbP.name} posts BB ${amt}`);
   }
 
   // Pre-flop: action from UTG, current bet = BB, SB/BB already have amounts in streetBets
-  btlRunStreet(utgIdx, BTL_BB, streetBets, 0);
+  btlRunStreet(utgIdx, blinds.bb, streetBets, 0);
 
   // Flop
   if (btlPlayers.filter(p => p.inHand).length > 1) {
@@ -4155,11 +4168,13 @@ function playBattleHand() {
 }
 
 function updateBattleUI() {
+  const _bl = getBtlBlinds();
   document.getElementById('battleHandNum').textContent =
     `Hand ${btlHandNum}` +
     (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') +
     (btlAutoRun ? ' · auto' : '') +
-    (btlStepMode && btlPot > 0 ? ` · Pot $${btlPot}` : '');
+    (btlStepMode && btlPot > 0 ? ` · Pot $${btlPot}` : '') +
+    ` · Blinds ${_bl.sb.toLocaleString()}/${_bl.bb.toLocaleString()}`;
 
   // Community cards — always show all 5 (fixed for entire battle)
   const commEl = document.getElementById('battleCommCards');
@@ -5045,6 +5060,7 @@ function showBattleResults() {
       <strong style="color:var(--text)">ε (epsilon)</strong> is the exploration rate — how often a player tries a random action instead of using what they've learned. Starts at 0.40 and decays each hand down to 0.05. Low ε means the player is exploiting their learned strategy rather than experimenting. Learning uses discounted returns: river decisions get full credit, earlier streets get progressively less — reflecting that late-street choices are most directly tied to the outcome.<br><br>
       <strong style="color:var(--text)">raise×</strong> is the raise size multiplier. Starts at 0.75 and adapts over time — if raising wins, it nudges up (bet bigger); if raising loses, it nudges down (bet smaller). The Q-table decides <em>whether</em> to raise; raise× decides <em>how much</em>.<br><br>
       <strong style="color:var(--text)">The battle runs until one player holds all the chips.</strong> There is no hand limit — play continues until every other player is eliminated (chips = $0). Eliminated players are not dealt cards. Hit STOP at any time to see current standings.<br><br>
+      <strong style="color:var(--text)">Blinds escalate every 50 hands</strong> — starting at 100/200 and doubling each level (200/400 → 400/800 → 800/1,600 … no cap). This forces short stacks into push-or-fold territory and guarantees the battle ends in a reasonable number of hands. The current blind level is shown live in the hand counter.<br><br>
       <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Wk · Fr · Md · Gd · St). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
       <strong style="color:var(--text)">Results screen</strong> shows This Battle standings, All Battles running totals, the top 3 Biggest Pots of the battle, the chip evolution chart, and each player's learned strategy grid.
     </div>
