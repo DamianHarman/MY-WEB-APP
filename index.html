@@ -3614,6 +3614,7 @@ let btlGeneration  = 0;
 let btlGenHandNum  = 0;  // hands played in current generation — drives blind escalation
 let btlStartPos    = 'BTN';
 let btlStopFlag    = false;
+let btlPaused      = false;
 let btlHandNum     = 0;
 let btlDealerIdx   = 0;
 let btlStepMode    = false;
@@ -3640,12 +3641,7 @@ function getBtlBlinds() {
   const level = Math.floor(Math.max(btlGenHandNum - 1, 0) / 50);
   const bb = 200 * Math.pow(2, level);
   const sb = bb / 2;
-  // Cap BB at the shortest active stack so blinds never exceed what a player holds
-  const active = btlPlayers.filter(p => p.chips > 0);
-  const minStack = active.length ? Math.min(...active.map(p => p.chips)) : bb;
-  const effBB = Math.min(bb, minStack);
-  const effSB = Math.min(sb, Math.floor(effBB / 2));
-  return { sb: effSB, bb: effBB, raise: effBB * 3 };
+  return { sb, bb, raise: bb * 3 };
 }
 const BTL_HAND_NAMES = ['High Card','Pair','Two Pair','Trips','Straight','Flush','Full House','Quads','Str. Flush'];
 
@@ -3698,7 +3694,51 @@ function setBattleHands(n, el) {
   el.classList.add('on');
 }
 
-function stopBattle() { btlStopFlag = true; btlAutoRun = false; }
+function stopBattle() { btlStopFlag = true; btlAutoRun = false; btlPaused = false; }
+
+function pauseBattle() {
+  btlPaused = true;
+  const btn = document.getElementById('btlPauseBtn');
+  if (btn) btn.textContent = '⏸ PAUSED';
+  const ctrl = document.getElementById('btlPauseControls');
+  if (ctrl) { ctrl.style.display = 'flex'; updatePauseStepBtn(); }
+}
+
+function resumeBattle() {
+  btlPaused = false;
+  const btn = document.getElementById('btlPauseBtn');
+  if (btn) btn.textContent = 'PAUSE';
+  const ctrl = document.getElementById('btlPauseControls');
+  if (ctrl) ctrl.style.display = 'none';
+  scheduleNextBattleHand();
+}
+
+function stepBattleHand() {
+  if (btlPlayers.filter(p => p.chips > 0).length < 2) { showBattleResults(); return; }
+  try {
+    playBattleHand();
+    updateBattleUI();
+    const _si = Math.max(1, Math.floor(btlHandNum / 40) || 20);
+    if (btlHandNum % _si === 0) {
+      btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
+      const liveChart = document.getElementById('battleChipChart');
+      if (liveChart && btlChipHistory.length >= 2) liveChart.innerHTML = renderChipChart(btlChipHistory, btlPlayers);
+      renderLiveStrategy();
+    }
+    const logEl = document.getElementById('battleLog');
+    if (logEl) logEl.scrollTop = logEl.scrollHeight;
+  } catch(e) {
+    btlLog(`ERR hand ${btlHandNum}: ${e.message}`);
+    updateBattleUI();
+  }
+  if (btlPlayers.filter(p => p.chips > 0).length < 2) { showBattleResults(); return; }
+  updatePauseStepBtn();
+}
+
+function updatePauseStepBtn() {
+  const btn = document.getElementById('btlPauseStepBtn');
+  if (btn) btn.textContent = `STEP HAND ${btlHandNum + 1} ▶`;
+}
 
 function btlLog(msg) {
   btlLogLines.push(msg);
@@ -3945,6 +3985,7 @@ function setBtlStepMode(mode, el) {
 
 function btlBeginHandStep() {
   btlHandNum++;
+  btlGenHandNum++;
   btlPot = 0;
   btlPlayers.forEach((p, i) => {
     p.inHand = p.chips > 0; p.action = ''; p.episode = [];
@@ -4043,8 +4084,9 @@ function btlFinishAll() {
     if (btlStepPhase >= 1 && btlStepPhase <= 4) btlDoShowdownStep();
   } catch(e) { btlLog(`ERR: ${e.message}`); }
   btlStepMode = false;
-  document.getElementById('btlStepBtns').style.display = 'none';
-  document.getElementById('btlStopBtn').style.display  = '';
+  document.getElementById('btlStepBtns').style.display  = 'none';
+  document.getElementById('btlStopBtn').style.display   = '';
+  document.getElementById('btlPauseBtn').style.display  = '';
   scheduleNextBattleHand();
 }
 
@@ -4226,6 +4268,7 @@ function startBattle() {
   btlGeneration  = 0;
   btlAutoRun     = false;
   btlStopFlag    = false;
+  btlPaused      = false;
   btlHandNum     = 0;
   btlGenHandNum  = 0;
   btlLogLines    = [];
@@ -4264,8 +4307,11 @@ function startBattle() {
   btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
 
   showScreen('battleRunScreen');
+  document.getElementById('btlPauseBtn').style.display     = '';
+  document.getElementById('btlPauseControls').style.display = 'none';
   if (btlStepMode) {
     document.getElementById('btlStopBtn').style.display  = 'none';
+    document.getElementById('btlPauseBtn').style.display = 'none';
     document.getElementById('btlStepBtns').style.display = 'flex';
     btlBeginHandStep();
     updateBattleUI();
@@ -4289,6 +4335,7 @@ function repeatBattle() {
   });
 
   btlStopFlag    = false;
+  btlPaused      = false;
   btlHandNum     = 0;
   btlGenHandNum  = 0;
   btlLogLines    = [];
@@ -4310,8 +4357,11 @@ function repeatBattle() {
   btlDealerIdx    = (n - (posOffset[btlStartPos] ?? 0)) % n;
   btlChipHistory  = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
   showScreen('battleRunScreen');
+  document.getElementById('btlPauseBtn').style.display     = '';
+  document.getElementById('btlPauseControls').style.display = 'none';
   if (btlStepMode) {
     document.getElementById('btlStopBtn').style.display  = 'none';
+    document.getElementById('btlPauseBtn').style.display = 'none';
     document.getElementById('btlStepBtns').style.display = 'flex';
     btlBeginHandStep();
     updateBattleUI();
@@ -4335,6 +4385,7 @@ function continueBattle() {
   btlAutoRun    = true;
   btlGeneration++;
   btlStopFlag   = false;
+  btlPaused     = false;
   btlHandNum    = 0;
   btlGenHandNum = 0;
   btlLogLines   = [];
@@ -4364,6 +4415,7 @@ function scheduleNextBattleHand() {
   setTimeout(() => {
     if (btlStopFlag) { showBattleResults(); return; }
     if (btlPlayers.filter(p => p.chips > 0).length < 2) { showBattleResults(); return; }
+    if (btlPaused) { updatePauseStepBtn(); return; }
     try {
       playBattleHand();
       updateBattleUI();
@@ -5065,9 +5117,16 @@ function showBattleResults() {
   <p class="subtitle">AI Battle</p>
 
   <div class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span id="battleHandNum" style="font-size:0.9rem;font-weight:700;color:var(--gold);letter-spacing:1px">Hand 0 / 100</span>
-      <button id="btlStopBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="stopBattle()">STOP</button>
+      <div style="display:flex;gap:8px">
+        <button id="btlPauseBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="pauseBattle()">PAUSE</button>
+        <button id="btlStopBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="stopBattle()">STOP</button>
+      </div>
+    </div>
+    <div id="btlPauseControls" style="display:none;gap:8px;margin-bottom:14px">
+      <button id="btlPauseStepBtn" class="btn btn-gold" style="flex:1;min-height:44px;font-size:0.82rem" onclick="stepBattleHand()">STEP HAND ▶</button>
+      <button class="btn-outline" style="flex:1;min-height:44px;font-size:0.82rem" onclick="resumeBattle()">RESUME ▷▷</button>
     </div>
 
     <div class="section-lbl">Fixed Community Cards</div>
