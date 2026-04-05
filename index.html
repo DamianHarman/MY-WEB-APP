@@ -937,7 +937,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v36</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v39</p>
 
   <div class="panel">
 
@@ -1158,8 +1158,27 @@
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v37</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v39</span>
           <span style="color:var(--muted);font-size:0.68rem">Current</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — VPIP:</strong> results now show each player's VPIP (Voluntarily Put money In Pot) — the % of hands they called or raised preflop, a key measure of playing style.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Reset Learning after one play:</strong> the Reset Learning button now appears immediately after the first battle instead of requiring two plays.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v38</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — blind rotation fix:</strong> dealer button now advances each hand so SB/BB rotate around all players; eliminated players are skipped so a live player always posts the big blind.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v37</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
           <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — escalating blinds:</strong> blinds double every 50 hands (starting 100/200), ensuring bust-outs happen fast and battles never drag to 10,000+ hands.</li>
@@ -3643,6 +3662,28 @@ function getBtlBlinds() {
   const sb = bb / 2;
   return { sb, bb, raise: bb * 3 };
 }
+
+// Return index of next active player (chips > 0) at or after fromIdx, wrapping around
+function btlNextActive(fromIdx) {
+  const n = btlPlayers.length;
+  let idx = ((fromIdx % n) + n) % n;
+  for (let t = 0; t < n; t++) {
+    if (btlPlayers[idx].chips > 0) return idx;
+    idx = (idx + 1) % n;
+  }
+  return idx; // fallback (should not happen if ≥2 active)
+}
+
+// Advance dealer button to next active player and return [sbIdx, bbIdx, utgIdx]
+function btlAdvanceDealer() {
+  const n = btlPlayers.length;
+  btlDealerIdx = btlNextActive((btlDealerIdx + 1) % n);
+  const sbIdx  = btlNextActive((btlDealerIdx + 1) % n);
+  const bbIdx  = btlNextActive((sbIdx + 1) % n);
+  const utgIdx = btlNextActive((bbIdx + 1) % n);
+  return { sbIdx, bbIdx, utgIdx };
+}
+
 const BTL_HAND_NAMES = ['High Card','Pair','Two Pair','Trips','Straight','Flush','Full House','Quads','Str. Flush'];
 
 function setBattlePlayers(n, el) {
@@ -3930,7 +3971,7 @@ function btlRunStreet(actFirst, initBet, streetBets, streetIdx) {
                  : 'raise';
 
     p.action = action;
-    if (st) { st[action]++; }
+    if (st) { st[action]++; if (streetIdx === 0 && (action === 'call' || action === 'raise')) st.vpip++; }
     if (p.episode) p.episode.push({ state, action: actionCode });
 
     if (action === 'fold') {
@@ -3996,17 +4037,17 @@ function btlBeginHandStep() {
   btlComm    = btlFixedComm;
   btlVisible = 0;
   const n        = btlPlayers.length;
-  btlStepSbIdx   = (btlDealerIdx + 1) % n;
-  const bbIdx    = (btlDealerIdx + 2) % n;
-  const utgIdx   = (btlDealerIdx + 3) % n;
+  const { sbIdx: _stepSb, bbIdx, utgIdx } = btlAdvanceDealer();
+  btlStepSbIdx = _stepSb;
   btlLog(`── Hand ${btlHandNum} ──`);
   const streetBets = {};
   btlPlayers.forEach((_, i) => streetBets[i] = 0);
   const sbP = btlPlayers[btlStepSbIdx], bbP = btlPlayers[bbIdx];
   const _blinds0 = getBtlBlinds();
+  let _preFlopBet = _blinds0.bb;
   if (sbP && sbP.inHand) { const a = Math.min(_blinds0.sb, sbP.chips); sbP.chips -= a; streetBets[btlStepSbIdx] = a; btlPot += a; btlLog(`${sbP.name} posts SB ${a}`); }
-  if (bbP && bbP.inHand) { const a = Math.min(_blinds0.bb, bbP.chips); bbP.chips -= a; streetBets[bbIdx] = a; btlPot += a; btlLog(`${bbP.name} posts BB ${a}`); }
-  btlRunStreet(utgIdx, _blinds0.bb, streetBets, 0);
+  if (bbP && bbP.inHand) { const a = Math.min(_blinds0.bb, bbP.chips); bbP.chips -= a; streetBets[bbIdx] = a; btlPot += a; _preFlopBet = a; btlLog(`${bbP.name} posts BB ${a}`); }
+  btlRunStreet(utgIdx, _preFlopBet, streetBets, 0);
   btlStepPhase = 1;
 }
 
@@ -4116,9 +4157,7 @@ function playBattleHand() {
   btlVisible = 0;
 
   const n      = btlPlayers.length;
-  const sbIdx  = (btlDealerIdx + 1) % n;
-  const bbIdx  = (btlDealerIdx + 2) % n;
-  const utgIdx = (btlDealerIdx + 3) % n;
+  const { sbIdx, bbIdx, utgIdx } = btlAdvanceDealer();
 
   btlLog(`── Hand ${btlHandNum} ──`);
 
@@ -4128,6 +4167,7 @@ function playBattleHand() {
   btlPlayers.forEach((_, i) => streetBets[i] = 0);
 
   const sbP = btlPlayers[sbIdx], bbP = btlPlayers[bbIdx];
+  let preFlopBet = blinds.bb;
   if (sbP.inHand) {
     const amt = Math.min(blinds.sb, sbP.chips);
     sbP.chips -= amt; streetBets[sbIdx] = amt; btlPot += amt;
@@ -4136,11 +4176,12 @@ function playBattleHand() {
   if (bbP.inHand) {
     const amt = Math.min(blinds.bb, bbP.chips);
     bbP.chips -= amt; streetBets[bbIdx] = amt; btlPot += amt;
+    preFlopBet = amt;
     btlLog(`${bbP.name} posts BB ${amt}`);
   }
 
-  // Pre-flop: action from UTG, current bet = BB, SB/BB already have amounts in streetBets
-  btlRunStreet(utgIdx, blinds.bb, streetBets, 0);
+  // Pre-flop: action from UTG, current bet = BB (or actual BB posted if all-in), SB/BB already in streetBets
+  btlRunStreet(utgIdx, preFlopBet, streetBets, 0);
 
   // Flop
   if (btlPlayers.filter(p => p.inHand).length > 1) {
@@ -4258,13 +4299,6 @@ function updateBattleUI() {
 }
 
 function startBattle() {
-  // Flush current battle results into per-player memory slots
-  btlPlayerStats.forEach((st, i) => {
-    const prevNet = btlPlayerMemory[i] ? (btlPlayerMemory[i].netChips || 0) : 0;
-    btlPlayerMemory[i] = { qtable: new Float64Array(st.qtable), epsilon: st.epsilon, raiseMult: st.raiseMult,
-                           netChips: prevNet + (btlPlayers[i] ? btlPlayers[i].chips - BTL_START : 0) };
-  });
-
   btlGeneration  = 0;
   btlAutoRun     = false;
   btlStopFlag    = false;
@@ -4277,7 +4311,7 @@ function startBattle() {
   for (let i = 0; i < btlNumPlayers; i++) {
     const mem = btlPlayerMemory[i];
     btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: [], inHand: false, action: '', episode: [] });
-    btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0,
+    btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0, vpip: 0,
                           raiseMult:  mem ? mem.raiseMult : 0.75,
                           prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
                           qtable:  mem ? new Float64Array(mem.qtable) : new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
@@ -4327,13 +4361,6 @@ function resetBattleLearning() {
 }
 
 function repeatBattle() {
-  // Flush current results into per-player memory slots before resetting chips
-  btlPlayerStats.forEach((st, i) => {
-    const prevNet = btlPlayerMemory[i] ? (btlPlayerMemory[i].netChips || 0) : 0;
-    btlPlayerMemory[i] = { qtable: new Float64Array(st.qtable), epsilon: st.epsilon, raiseMult: st.raiseMult,
-                           netChips: prevNet + (btlPlayers[i] ? btlPlayers[i].chips - BTL_START : 0) };
-  });
-
   btlStopFlag    = false;
   btlPaused      = false;
   btlHandNum     = 0;
@@ -4344,7 +4371,7 @@ function repeatBattle() {
   for (let i = 0; i < btlNumPlayers; i++) {
     const mem = btlPlayerMemory[i];
     btlPlayers.push({ name: `P${i+1}`, chips: BTL_START, hole: [], inHand: false, action: '', episode: [] });
-    btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0,
+    btlPlayerStats.push({ fold: 0, check: 0, call: 0, raise: 0, won: 0, played: 0, vpip: 0,
                           raiseMult:  mem ? mem.raiseMult : 0.75,
                           prevChips: BTL_START, raisedThisHand: false, lastRaiseAmt: 0,
                           qtable:  mem ? new Float64Array(mem.qtable) : new Float64Array(BTL_Q_STATES * BTL_Q_ACTIONS),
@@ -4397,7 +4424,7 @@ function continueBattle() {
   });
   btlPlayerStats.forEach(st => {
     st.fold = 0; st.check = 0; st.call = 0; st.raise = 0;
-    st.won = 0; st.played = 0;
+    st.won = 0; st.played = 0; st.vpip = 0;
     st.prevChips = BTL_START;
     st.raisedThisHand = false;
     st.lastRaiseAmt = 0;
@@ -4758,6 +4785,7 @@ function showH2HResults() {
     const total    = (st.fold||0)+(st.check||0)+(st.call||0)+(st.raise||0);
     const pct      = n => total > 0 ? Math.round(n/total*100) : 0;
     const winPct   = st.played > 0 ? Math.round(st.won/st.played*100) : 0;
+    const vpipPct  = st.played > 0 ? Math.round((st.vpip||0)/st.played*100) : 0;
     const pc       = BTL_COLS[pIdx % BTL_COLS.length];
     return `<div style="flex:1;text-align:center;padding:12px 8px;background:${isWinner?'rgba(240,192,64,0.07)':'var(--panel2)'};` +
            `border-radius:10px;border:1px solid ${isWinner?pc:'var(--border)'}">` +
@@ -4770,9 +4798,10 @@ function showH2HResults() {
         `<span style="color:var(--muted)">K</span> ${pct(st.check||0)}% &nbsp;` +
         `<span style="color:var(--win)">C</span> ${pct(st.call||0)}% &nbsp;` +
         `<span style="color:var(--gold)">R</span> ${pct(st.raise||0)}%<br>` +
+        `VPIP <b style="color:var(--text)">${vpipPct}%</b> &nbsp;` +
+        `Won ${winPct}% of ${st.played||0} hands<br>` +
         `ε <b style="color:var(--text)">${(st.epsilon||0).toFixed(3)}</b> &nbsp;` +
-        `raise× <b style="color:var(--text)">${(st.raiseMult||0).toFixed(2)}</b><br>` +
-        `Won ${winPct}% of ${st.played||0} hands` +
+        `raise× <b style="color:var(--text)">${(st.raiseMult||0).toFixed(2)}</b>` +
       `</div>` +
     `</div>`;
   };
@@ -4931,6 +4960,7 @@ function showBattleResults() {
       `</div>` +
       `</div>` +
       `<div style="font-size:0.6rem;color:var(--muted);margin-top:1px;padding-left:36px">` +
+      `VPIP <b style="color:var(--text)">${pst.played > 0 ? Math.round((pst.vpip||0)/pst.played*100) : 0}%</b> &nbsp;` +
       `ε <b style="color:var(--text)">${(pst.epsilon||0).toFixed(3)}</b> r×<b style="color:var(--text)">${(pst.raiseMult||0).toFixed(2)}</b>` +
       `</div>` +
       `</div>`;
@@ -4976,6 +5006,12 @@ function showBattleResults() {
   const converged2 = btlAllConverged();
   const eliminated = btlPlayers.filter(p => p.chips > 0).length <= 1;
   if (!eliminated && !converged2 && !btlStopFlag) { continueBattle(); return; }
+  // Flush learned strategies into persistent memory so Reset Learning is available after first battle
+  btlPlayerStats.forEach((st, i) => {
+    const prevNet = btlPlayerMemory[i] ? (btlPlayerMemory[i].netChips || 0) : 0;
+    btlPlayerMemory[i] = { qtable: new Float64Array(st.qtable), epsilon: st.epsilon, raiseMult: st.raiseMult,
+                           netChips: prevNet + (btlPlayers[i] ? btlPlayers[i].chips - BTL_START : 0) };
+  });
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
   document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
