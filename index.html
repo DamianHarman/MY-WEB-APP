@@ -1175,7 +1175,7 @@
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
           <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Hand Guide — live equity per street and out cards shown as card chips.</li>
           <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Custom range picker — build any opponent range using a 13×13 hand matrix.</li>
-          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Battle — Biggest Pots on results screen; sharper pre-flop AI hand strength tiers.</li>
+          <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Battle — sharper pre-flop AI hand strength tiers (5 distinct tiers).</li>
           <li style="font-size:0.78rem;color:var(--muted);padding:6px 10px;background:rgba(255,255,255,0.02);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.5">Live strategy legend; leaderboard confidence warnings; welcome screen.</li>
         </ul>
       </div>
@@ -3611,6 +3611,7 @@ function setBtlP1CardMode(mode, el) {
 }
 let btlTotalHands  = 100;
 let btlGeneration  = 0;
+let btlGenHandNum  = 0;  // hands played in current generation — drives blind escalation
 let btlStartPos    = 'BTN';
 let btlStopFlag    = false;
 let btlHandNum     = 0;
@@ -3628,18 +3629,23 @@ let btlPot         = 0;
 let btlVisible     = 0;    // how many community cards shown in UI
 let btlLogLines    = [];
 let btlChipHistory = []; // [{hand, chips:[]}]
-let btlKeyHands    = []; // top-3 biggest pots [{hand, pot, winner, handName}]
 
 const BTL_START    = 50000;
 const BTL_COLS     = ['#f0c040','#4caf50','#64b5f6','#ff8a65','#ba68c8','#4db6ac'];
 const BTL_MC_ITERS = 500;
 
 // Escalating blind schedule — doubles every 50 hands, no cap
+// Uses btlGenHandNum (resets each generation) not btlHandNum (cumulative)
 function getBtlBlinds() {
-  const level = Math.floor((Math.max(btlHandNum, 1) - 1) / 50);
+  const level = Math.floor(Math.max(btlGenHandNum - 1, 0) / 50);
   const bb = 200 * Math.pow(2, level);
   const sb = bb / 2;
-  return { sb, bb, raise: bb * 3 };
+  // Cap BB at the shortest active stack so blinds never exceed what a player holds
+  const active = btlPlayers.filter(p => p.chips > 0);
+  const minStack = active.length ? Math.min(...active.map(p => p.chips)) : bb;
+  const effBB = Math.min(bb, minStack);
+  const effSB = Math.min(sb, Math.floor(effBB / 2));
+  return { sb: effSB, bb: effBB, raise: effBB * 3 };
 }
 const BTL_HAND_NAMES = ['High Card','Pair','Two Pair','Trips','Straight','Flush','Full House','Quads','Str. Flush'];
 
@@ -3987,11 +3993,6 @@ function btlDoShowdownStep() {
     btlLog(winners.length === 1
       ? `${winners[0].p.name} wins $${btlPot} — ${BTL_HAND_NAMES[best[0]]}`
       : `Split $${btlPot} (${winners.map(w => w.p.name).join('/')}) — ${BTL_HAND_NAMES[best[0]]}`);
-    if (btlPot > 0) {
-      btlKeyHands.push({ hand: btlHandNum, pot: btlPot, winner: winners.length === 1 ? winners[0].p.name : 'Split', handName: BTL_HAND_NAMES[best[0]] });
-      btlKeyHands.sort((a, b) => b.pot - a.pot);
-      if (btlKeyHands.length > 3) btlKeyHands.length = 3;
-    }
   }
   btlPlayers.forEach((p, i) => { if (btlStepDealtIn[i]) btlPlayerStats[i].played++; });
   handWinners.forEach(wp => { const i = btlPlayers.indexOf(wp); if (i >= 0) btlPlayerStats[i].won++; });
@@ -4061,6 +4062,7 @@ function updateStepBtn() {
 
 function playBattleHand() {
   btlHandNum++;
+  btlGenHandNum++;
   btlPot = 0;
   btlPlayers.forEach((p, i) => { p.inHand = p.chips > 0; p.action = ''; p.episode = [];
     if (btlPlayerStats[i]) btlPlayerStats[i].raisedThisHand = false; });
@@ -4146,12 +4148,6 @@ function playBattleHand() {
     } else {
       btlLog(`Split $${btlPot} (${winners.map(w => w.p.name).join('/')}) — ${BTL_HAND_NAMES[best[0]]}`);
     }
-    // Track biggest pots for results summary
-    if (btlPot > 0) {
-      btlKeyHands.push({ hand: btlHandNum, pot: btlPot, winner: winners.length === 1 ? winners[0].p.name : 'Split', handName: BTL_HAND_NAMES[best[0]] });
-      btlKeyHands.sort((a, b) => b.pot - a.pot);
-      if (btlKeyHands.length > 3) btlKeyHands.length = 3;
-    }
   }
 
   // Track stats
@@ -4231,6 +4227,7 @@ function startBattle() {
   btlAutoRun     = false;
   btlStopFlag    = false;
   btlHandNum     = 0;
+  btlGenHandNum  = 0;
   btlLogLines    = [];
   btlPlayers     = [];
   btlPlayerStats = [];
@@ -4265,7 +4262,6 @@ function startBattle() {
   btlSavedHoles = p1Hole ? [[...p1Hole]] : []; // save P1 picked cards only (opponents get fresh cards each hand)
   btlDealHoleCards(); // deal initial hole cards for first hand
   btlChipHistory = [{ hand: 0, chips: btlPlayers.map(p => p.chips) }];
-  btlKeyHands    = [];
 
   showScreen('battleRunScreen');
   if (btlStepMode) {
@@ -4294,6 +4290,7 @@ function repeatBattle() {
 
   btlStopFlag    = false;
   btlHandNum     = 0;
+  btlGenHandNum  = 0;
   btlLogLines    = [];
   btlPlayers     = [];
   btlPlayerStats = [];
@@ -4338,8 +4335,9 @@ function continueBattle() {
   btlAutoRun    = true;
   btlGeneration++;
   btlStopFlag   = false;
+  btlHandNum    = 0;
+  btlGenHandNum = 0;
   btlLogLines   = [];
-  btlKeyHands   = [];
   btlPlayers.forEach(p => {
     p.chips   = BTL_START;
     p.inHand  = false;
@@ -4758,7 +4756,7 @@ function showH2HResults() {
     // Chip evolution chart
     `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Chip Evolution</div>` +
     `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
-    renderChipChart(btlChipHistory, btlPlayers) +
+    (btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) }), renderChipChart(btlChipHistory, btlPlayers)) +
 
     renderLearnedStratSection(tied ? 0 : wIdx);
 
@@ -4770,9 +4768,10 @@ function showH2HResults() {
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
   document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
-  document.getElementById('convergedMsg').style.display = converged ? '' : 'none';
+
+  const _b0 = getBtlBlinds();
   document.getElementById('battleResultSubtitle').textContent =
-    'Head to Head · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged ? ' · CONVERGED' : '');
+    'Head to Head · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (converged ? ' · CONVERGED' : '') + ` · Blinds ${_b0.sb.toLocaleString()}/${_b0.bb.toLocaleString()}`;
   showScreen('battleResultScreen');
   showLearnedStratFor(tied ? 0 : wIdx);
 }
@@ -4906,20 +4905,8 @@ function showBattleResults() {
       `<div style="flex:1">${progHtml}</div>` +
     `</div>`;
 
-  // Biggest pots
-  if (btlKeyHands.length > 0) {
-    html += `<hr class="div" style="margin:16px 0">` +
-      `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Biggest Pots</div>`;
-    btlKeyHands.forEach(kh => {
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">` +
-        `<span style="font-size:0.72rem;color:var(--muted)">Hand ${kh.hand}</span>` +
-        `<span style="font-size:0.78rem;color:var(--text)">${kh.winner} — ${kh.handName}</span>` +
-        `<span style="font-size:0.82rem;font-weight:700;color:var(--gold)">$${kh.pot}</span>` +
-        `</div>`;
-    });
-  }
-
-  // Chip evolution chart below
+  // Chip evolution chart below — push final state first so graph endpoint matches results
+  btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) });
   html +=
     `<hr class="div" style="margin:16px 0">` +
     `<div style="color:var(--muted);font-size:0.65rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">Chip Evolution</div>` +
@@ -4940,9 +4927,10 @@ function showBattleResults() {
   document.getElementById('battleResultBody').innerHTML = html;
   document.getElementById('repeatBattleBtn').style.display = btlSavedHoles.length ? '' : 'none';
   document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
-  document.getElementById('convergedMsg').style.display = converged2 ? '' : 'none';
+
+  const _b1 = getBtlBlinds();
   document.getElementById('battleResultSubtitle').textContent =
-    'AI Battle · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (eliminated ? ' · ELIMINATED' : converged2 ? ' · CONVERGED' : '');
+    'AI Battle · Results' + (btlGeneration > 0 ? ` · Gen ${btlGeneration + 1}` : '') + (eliminated ? ' · ELIMINATED' : converged2 ? ' · CONVERGED' : '') + ` · Blinds ${_b1.sb.toLocaleString()}/${_b1.bb.toLocaleString()}`;
   showScreen('battleResultScreen');
   showLearnedStratFor(winIdx);
 }
@@ -5062,7 +5050,7 @@ function showBattleResults() {
       <strong style="color:var(--text)">The battle runs until one player holds all the chips.</strong> There is no hand limit — play continues until every other player is eliminated (chips = $0). Eliminated players are not dealt cards. Hit STOP at any time to see current standings.<br><br>
       <strong style="color:var(--text)">Blinds escalate every 50 hands</strong> — starting at 100/200 and doubling each level (200/400 → 400/800 → 800/1,600 … no cap). This forces short stacks into push-or-fold territory and guarantees the battle ends in a reasonable number of hands. The current blind level is shown live in the hand counter.<br><br>
       <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Wk · Fr · Md · Gd · St). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
-      <strong style="color:var(--text)">Results screen</strong> shows This Battle standings, All Battles running totals, the top 3 Biggest Pots of the battle, the chip evolution chart, and each player's learned strategy grid.
+      <strong style="color:var(--text)">Results screen</strong> shows This Battle standings, All Battles running totals, the chip evolution chart, and each player's learned strategy grid.
     </div>
 
     <button class="btn btn-gold" onclick="startBattle()">START BATTLE</button>
@@ -5107,9 +5095,7 @@ function showBattleResults() {
 
   <div class="panel">
     <div id="battleResultBody"></div>
-    <div id="convergedMsg" style="display:none;margin-top:18px;padding:12px 14px;background:var(--panel2);border:1px solid var(--border);border-left:3px solid #4caf50;border-radius:10px;font-size:0.82rem;color:#4caf50;text-align:center;letter-spacing:0.5px">
-      All players have converged (ε = 0.05). The strategy heatmap above shows the ultimate learned strategy.
-    </div>
+
     <button class="btn btn-gold"     style="margin-top:20px"  onclick="goBattleSetup()">PLAY AGAIN</button>
     <button class="btn btn-outline"  style="margin-top:10px"  onclick="goSetup()">MAIN MENU</button>
   </div>
