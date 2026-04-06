@@ -937,7 +937,7 @@
 <div id="setupScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v39</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v40</p>
 
   <div class="panel">
 
@@ -1158,8 +1158,18 @@
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v39</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v40</span>
           <span style="color:var(--muted);font-size:0.68rem">Current</span>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Strategy Comparison:</strong> results now include a cross-player analysis table (Raise%, Fold%, PF/River aggression, bluff rate, VPIP) with narrative insights comparing how each player's style differs and why the winner won.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Pause shows full hand log:</strong> pausing now expands the action log to show the complete last hand from blind posts to final action, with scrolling.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v39</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
           <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — VPIP:</strong> results now show each player's VPIP (Voluntarily Put money In Pot) — the % of hands they called or raised preflop, a key measure of playing style.</li>
@@ -3743,6 +3753,7 @@ function pauseBattle() {
   if (btn) btn.textContent = '⏸ PAUSED';
   const ctrl = document.getElementById('btlPauseControls');
   if (ctrl) { ctrl.style.display = 'flex'; updatePauseStepBtn(); }
+  updateBattleUI();
 }
 
 function resumeBattle() {
@@ -3783,7 +3794,15 @@ function updatePauseStepBtn() {
 
 function btlLog(msg) {
   btlLogLines.push(msg);
-  if (btlLogLines.length > 40) btlLogLines.shift();
+  if (btlLogLines.length > 200) btlLogLines.shift();
+}
+
+// Return all log lines from the start of the last hand
+function btlLastHandLog() {
+  for (let i = btlLogLines.length - 1; i >= 0; i--) {
+    if (btlLogLines[i].startsWith('──')) return btlLogLines.slice(i);
+  }
+  return btlLogLines.slice(-20);
 }
 
 // Partial-shuffle Monte Carlo: estimate win probability using all 5 locked community cards
@@ -4292,9 +4311,15 @@ function updateBattleUI() {
     playersEl.appendChild(row);
   });
 
-  // Log (last 12 lines)
+  // Log — full last hand when paused, otherwise last 12 lines
   const logEl = document.getElementById('battleLog');
-  logEl.innerHTML = btlLogLines.slice(-12).join('<br>');
+  if (btlPaused) {
+    logEl.style.maxHeight = '320px';
+    logEl.innerHTML = btlLastHandLog().join('<br>');
+  } else {
+    logEl.style.maxHeight = '120px';
+    logEl.innerHTML = btlLogLines.slice(-12).join('<br>');
+  }
   logEl.scrollTop = logEl.scrollHeight;
 }
 
@@ -4759,6 +4784,168 @@ function stratSummary(st, pName, pCol, handsCtx) {
   return html;
 }
 
+// Compute key Q-table metrics for a single player
+function computeStratMetrics(qt) {
+  const getBest = (si, sb, pb) => {
+    const base = (si * 15 + sb * 3 + pb) * BTL_Q_ACTIONS;
+    const qs = [qt[base], qt[base+1], qt[base+2]];
+    if (qs.every(q => Math.abs(q) < 0.0001)) return -1;
+    return qs.indexOf(Math.max(...qs));
+  };
+  let total=0, folds=0, raises=0;
+  let pfR=0, pfT=0, rivR=0, rivT=0;
+  let strongR=0, strongT=0, weakR=0, weakT=0;
+  let bigR=0, bigT=0;
+  for (let si=0; si<4; si++)
+    for (let sb=0; sb<5; sb++)
+      for (let pb=0; pb<3; pb++) {
+        const a = getBest(si, sb, pb); if (a<0) continue;
+        total++; if (a===0) folds++; if (a===2) raises++;
+        if (si===0) { pfT++; if (a===2) pfR++; }
+        if (si===3) { rivT++; if (a===2) rivR++; }
+        if (sb===4) { strongT++; if (a===2) strongR++; }
+        if (sb===0) { weakT++; if (a===2) weakR++; }
+        if (pb===2) { bigT++; if (a===2) bigR++; }
+      }
+  return {
+    raiseRate:      total   > 0 ? raises/total   : 0,
+    foldRate:       total   > 0 ? folds/total    : 0,
+    pfRaiseRate:    pfT     > 0 ? pfR/pfT        : 0,
+    rivRaiseRate:   rivT    > 0 ? rivR/rivT      : 0,
+    strongRaiseRate:strongT > 0 ? strongR/strongT: 0,
+    weakBluffRate:  weakT   > 0 ? weakR/weakT    : 0,
+    bigPotRate:     bigT    > 0 ? bigR/bigT      : 0,
+    total,
+  };
+}
+
+// Cross-player comparative insights
+function renderCrossPlayerInsights() {
+  const players = [];
+  for (let i=0; i<btlPlayers.length; i++) {
+    const st = getLearnedStat(i);
+    if (!st || !st.qtable || st.qtable.length < BTL_Q_STATES * BTL_Q_ACTIONS) continue;
+    const m = computeStratMetrics(st.qtable);
+    if (m.total < 5) continue;
+    const pst = btlPlayerStats[i] || {};
+    players.push({ i, name:`P${i+1}`, col:BTL_COLS[i%BTL_COLS.length], m,
+                   chips: btlPlayers[i] ? btlPlayers[i].chips : 0,
+                   vpip: pst.played > 0 ? Math.round((pst.vpip||0)/pst.played*100) : null,
+                   raiseMult: st.raiseMult || 0 });
+  }
+  if (players.length < 2) return '';
+
+  const avg = k => players.reduce((s,p)=>s+p.m[k],0)/players.length;
+  const pct = v => Math.round(v*100);
+  const avgRaise = avg('raiseRate'), avgFold = avg('foldRate');
+
+  // Build comparison table
+  const sorted = [...players].sort((a,b)=>b.chips-a.chips);
+  let tableHtml = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem;margin-bottom:10px">` +
+    `<thead><tr>` +
+    `<th style="text-align:left;color:var(--muted);font-weight:400;padding:4px 6px 6px 0">Player</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Raise%</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Fold%</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">PF Aggr</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Rv Aggr</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">vs Strong</th>` +
+    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Bluff%</th>` +
+    (players[0].vpip !== null ? `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">VPIP</th>` : '') +
+    `</tr></thead><tbody>`;
+
+  sorted.forEach(p => {
+    const isWinner = p.chips === sorted[0].chips;
+    const rDiff = p.m.raiseRate - avgRaise;
+    const rCol  = rDiff > 0.08 ? 'var(--gold)' : rDiff < -0.08 ? 'var(--loss)' : 'var(--text)';
+    const fDiff = p.m.foldRate - avgFold;
+    const fCol  = fDiff > 0.08 ? 'var(--loss)' : fDiff < -0.08 ? 'var(--win)' : 'var(--text)';
+    tableHtml +=
+      `<tr style="border-top:1px solid var(--border)">` +
+      `<td style="padding:5px 6px 5px 0;font-weight:700;color:${p.col}">${p.name}${isWinner?' ★':''}</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:${rCol};font-weight:700">${pct(p.m.raiseRate)}%</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:${fCol}">${pct(p.m.foldRate)}%</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:var(--text)">${pct(p.m.pfRaiseRate)}%</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:var(--text)">${pct(p.m.rivRaiseRate)}%</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:var(--text)">${pct(p.m.strongRaiseRate)}%</td>` +
+      `<td style="text-align:center;padding:5px 4px;color:var(--text)">${pct(p.m.weakBluffRate)}%</td>` +
+      (p.vpip !== null ? `<td style="text-align:center;padding:5px 4px;color:var(--text)">${p.vpip}%</td>` : '') +
+      `</tr>`;
+  });
+  tableHtml += `<tr style="border-top:1px solid var(--border);opacity:0.5">` +
+    `<td style="padding:4px 6px 4px 0;color:var(--muted);font-size:0.6rem">avg</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avgRaise)}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avgFold)}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('pfRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('rivRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('strongRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('weakBluffRate'))}%</td>` +
+    (players[0].vpip !== null ? `<td></td>` : '') +
+    `</tr>`;
+  tableHtml += `</tbody></table></div>`;
+
+  // Narrative insights
+  const insights = [];
+  const winner = sorted[0];
+
+  // Most / least aggressive
+  const mostAggr  = players.reduce((a,b)=>b.m.raiseRate>a.m.raiseRate?b:a);
+  const leastAggr = players.reduce((a,b)=>b.m.raiseRate<a.m.raiseRate?b:a);
+  if (mostAggr.name !== leastAggr.name) {
+    const diff = pct(mostAggr.m.raiseRate - leastAggr.m.raiseRate);
+    insights.push(`<span style="color:${mostAggr.col}">${mostAggr.name}</span> is the most aggressive raiser (${pct(mostAggr.m.raiseRate)}%) vs <span style="color:${leastAggr.col}">${leastAggr.name}</span>'s ${pct(leastAggr.m.raiseRate)}% — a <b>${diff}pp</b> gap`);
+  }
+
+  // Winner's raise vs table avg
+  const wDiff = pct(winner.m.raiseRate - avgRaise);
+  if (Math.abs(wDiff) >= 5) {
+    const dir = wDiff > 0 ? `${wDiff}pp above` : `${Math.abs(wDiff)}pp below`;
+    insights.push(`Winner <span style="color:${winner.col}">${winner.name}</span> raises ${pct(winner.m.raiseRate)}% — ${dir} the table average of ${pct(avgRaise)}%`);
+  }
+
+  // Tightest folder
+  const tightest = players.reduce((a,b)=>b.m.foldRate>a.m.foldRate?b:a);
+  if (tightest.m.foldRate > 0.35)
+    insights.push(`<span style="color:${tightest.col}">${tightest.name}</span> is the tightest player — folds ${pct(tightest.m.foldRate)}% of situations, only entering pots with strong holdings`);
+
+  // Preflop vs river divergence
+  players.forEach(p => {
+    const diff = p.m.pfRaiseRate - p.m.rivRaiseRate;
+    if (diff > 0.3)
+      insights.push(`<span style="color:${p.col}">${p.name}</span> is preflop-heavy — raises ${pct(p.m.pfRaiseRate)}% preflop but only ${pct(p.m.rivRaiseRate)}% on the river (relies on stealing pots early)`);
+    else if (diff < -0.3)
+      insights.push(`<span style="color:${p.col}">${p.name}</span> is a river aggressor — raises ${pct(p.m.rivRaiseRate)}% on the river vs ${pct(p.m.pfRaiseRate)}% preflop (lets hands develop, then attacks)`);
+  });
+
+  // Top bluffer vs most disciplined
+  const topBluff = players.reduce((a,b)=>b.m.weakBluffRate>a.m.weakBluffRate?b:a);
+  if (topBluff.m.weakBluffRate > 0.2)
+    insights.push(`<span style="color:${topBluff.col}">${topBluff.name}</span> bluffs with weak hands ${pct(topBluff.m.weakBluffRate)}% of the time — highest at the table`);
+
+  // Strong hand value betting
+  const bestVB = players.reduce((a,b)=>b.m.strongRaiseRate>a.m.strongRaiseRate?b:a);
+  const worstVB = players.reduce((a,b)=>b.m.strongRaiseRate<a.m.strongRaiseRate?b:a);
+  if (bestVB.name !== worstVB.name && bestVB.m.strongRaiseRate - worstVB.m.strongRaiseRate > 0.25)
+    insights.push(`<span style="color:${bestVB.col}">${bestVB.name}</span> value-bets strong hands ${pct(bestVB.m.strongRaiseRate)}% vs <span style="color:${worstVB.col}">${worstVB.name}</span>'s ${pct(worstVB.m.strongRaiseRate)}% — ${worstVB.name} slow-plays more`);
+
+  // raise sizing
+  const bigRm  = players.reduce((a,b)=>b.raiseMult>a.raiseMult?b:a);
+  const smRm   = players.reduce((a,b)=>b.raiseMult<a.raiseMult?b:a);
+  if (bigRm.name !== smRm.name && bigRm.raiseMult - smRm.raiseMult > 0.2)
+    insights.push(`<span style="color:${bigRm.col}">${bigRm.name}</span> sizes raises at ${bigRm.raiseMult.toFixed(2)}× pot vs <span style="color:${smRm.col}">${smRm.name}</span>'s ${smRm.raiseMult.toFixed(2)}× — bigger bets extract more but risk over-commitment`);
+
+  if (insights.length === 0) return '';
+
+  let html = `<hr class="div" style="margin:18px 0">` +
+    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Strategy Comparison</div>` +
+    tableHtml +
+    `<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px">`;
+  insights.forEach(txt => {
+    html += `<li style="font-size:0.74rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--border);border-radius:0 5px 5px 0;line-height:1.6">${txt}</li>`;
+  });
+  html += `</ul>`;
+  return html;
+}
+
 function showH2HResults() {
   const p1 = btlPlayers[0], p2 = btlPlayers[1];
   const s1 = btlPlayerStats[0] || {}, s2 = btlPlayerStats[1] || {};
@@ -4839,6 +5026,7 @@ function showH2HResults() {
     `<div style="font-size:0.62rem;color:var(--muted);margin-bottom:6px">Stack size over ${btlHandNum} hands — dashed line = starting chips</div>` +
     (btlChipHistory.push({ hand: btlHandNum, chips: btlPlayers.map(p => p.chips) }), renderChipChart(btlChipHistory, btlPlayers)) +
 
+    renderCrossPlayerInsights() +
     renderLearnedStratSection(tied ? 0 : wIdx);
 
   btlResultContexts = {};
@@ -5001,6 +5189,7 @@ function showBattleResults() {
   // ── Learned strategy section (player selector) ────────────────────────────
   btlResultContexts = {};
   btlResultContexts[winIdx] = { played: btlHandNum, total: btlTotalHands, allDefeated: sorted.slice(1).every(p => p.chips === 0), opponents: btlPlayers.length - 1 };
+  html += renderCrossPlayerInsights();
   html += renderLearnedStratSection(winIdx);
 
   const converged2 = btlAllConverged();
