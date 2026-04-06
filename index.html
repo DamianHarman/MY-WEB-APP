@@ -3754,6 +3754,8 @@ function pauseBattle() {
   const ctrl = document.getElementById('btlPauseControls');
   if (ctrl) { ctrl.style.display = 'flex'; updatePauseStepBtn(); }
   updateBattleUI();
+  const logEl = document.getElementById('battleLog');
+  if (logEl) logEl.scrollTop = logEl.scrollHeight;
 }
 
 function resumeBattle() {
@@ -4311,16 +4313,18 @@ function updateBattleUI() {
     playersEl.appendChild(row);
   });
 
-  // Log — full last hand when paused, otherwise last 12 lines
+  // Log — full history when paused, otherwise last 12 lines
   const logEl = document.getElementById('battleLog');
   if (btlPaused) {
-    logEl.style.maxHeight = '320px';
-    logEl.innerHTML = btlLastHandLog().join('<br>');
+    logEl.style.maxHeight = '400px';
+    logEl.style.overflowY = 'scroll';
+    logEl.innerHTML = btlLogLines.join('<br>');
   } else {
     logEl.style.maxHeight = '120px';
+    logEl.style.overflowY = 'auto';
     logEl.innerHTML = btlLogLines.slice(-12).join('<br>');
   }
-  logEl.scrollTop = logEl.scrollHeight;
+  if (!btlPaused) logEl.scrollTop = logEl.scrollHeight;
 }
 
 function startBattle() {
