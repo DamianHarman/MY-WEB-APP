@@ -4847,14 +4847,14 @@ function renderCrossPlayerInsights() {
   const sorted = [...players].sort((a,b)=>b.chips-a.chips);
   let tableHtml = `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.64rem;margin-bottom:10px">` +
     `<thead><tr>` +
-    `<th style="text-align:left;color:var(--muted);font-weight:400;padding:4px 6px 6px 0">Player</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Raise%</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Fold%</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">PF Aggr</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Rv Aggr</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">vs Strong</th>` +
-    `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">Bluff%</th>` +
-    (players[0].vpip !== null ? `<th style="text-align:center;color:var(--muted);font-weight:400;padding:4px 4px 6px">VPIP</th>` : '') +
+    `<th style="text-align:left;color:var(--text);font-weight:400;padding:4px 6px 6px 0">Player</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">Raise%</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">Fold%</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">PF Aggr</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">Rv Aggr</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">vs Strong</th>` +
+    `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">Bluff%</th>` +
+    (players[0].vpip !== null ? `<th style="text-align:center;color:var(--text);font-weight:400;padding:4px 4px 6px">VPIP</th>` : '') +
     `</tr></thead><tbody>`;
 
   sorted.forEach(p => {
@@ -4875,14 +4875,14 @@ function renderCrossPlayerInsights() {
       (p.vpip !== null ? `<td style="text-align:center;padding:5px 4px;color:var(--text)">${p.vpip}%</td>` : '') +
       `</tr>`;
   });
-  tableHtml += `<tr style="border-top:1px solid var(--border);opacity:0.5">` +
-    `<td style="padding:4px 6px 4px 0;color:var(--muted);font-size:0.6rem">avg</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avgRaise)}%</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avgFold)}%</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('pfRaiseRate'))}%</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('rivRaiseRate'))}%</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('strongRaiseRate'))}%</td>` +
-    `<td style="text-align:center;padding:4px 4px;color:var(--muted);font-size:0.6rem">${pct(avg('weakBluffRate'))}%</td>` +
+  tableHtml += `<tr style="border-top:1px solid var(--border)">` +
+    `<td style="padding:4px 6px 4px 0;color:var(--text);font-size:0.6rem">avg</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avgRaise)}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avgFold)}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avg('pfRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avg('rivRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avg('strongRaiseRate'))}%</td>` +
+    `<td style="text-align:center;padding:4px 4px;color:var(--text);font-size:0.6rem">${pct(avg('weakBluffRate'))}%</td>` +
     (players[0].vpip !== null ? `<td></td>` : '') +
     `</tr>`;
   tableHtml += `</tbody></table></div>`;
@@ -4940,7 +4940,7 @@ function renderCrossPlayerInsights() {
   if (insights.length === 0) return '';
 
   let html = `<hr class="div" style="margin:18px 0">` +
-    `<div style="color:var(--muted);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Strategy Comparison</div>` +
+    `<div style="color:var(--text);font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Strategy Comparison</div>` +
     tableHtml +
     `<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px">`;
   insights.forEach(txt => {
@@ -5079,11 +5079,13 @@ function renderChipChart(history, players) {
   svg += `<line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t + IH}" stroke="#3a503a" stroke-width="1"/>`;
   svg += `<line x1="${PAD.l}" y1="${PAD.t + IH}" x2="${PAD.l + IW}" y2="${PAD.t + IH}" stroke="#3a503a" stroke-width="1"/>`;
 
-  // X-axis labels (4 ticks)
-  for (let ti = 0; ti <= 4; ti++) {
-    const idx = Math.round((ti / 4) * (n - 1));
-    const hnd = history[idx].hand;
-    svg += `<text x="${xS(idx).toFixed(1)}" y="${PAD.t + IH + 16}" text-anchor="middle" fill="#556655" font-size="9" font-family="monospace">${hnd}</text>`;
+  // X-axis labels (every 50 hands)
+  const maxHand = history[n - 1].hand;
+  const xStep = maxHand <= 500 ? 50 : maxHand <= 1000 ? 100 : 200;
+  for (let h = xStep; h <= maxHand; h += xStep) {
+    const idx = history.findIndex(s => s.hand >= h);
+    if (idx < 0) continue;
+    svg += `<text x="${xS(idx).toFixed(1)}" y="${PAD.t + IH + 16}" text-anchor="middle" fill="#556655" font-size="9" font-family="monospace">${h}</text>`;
   }
 
   // Player lines
@@ -5330,6 +5332,7 @@ function showBattleResults() {
       <strong style="color:var(--text)">raise×</strong> is the raise size multiplier. Starts at 0.75 and adapts over time — if raising wins, it nudges up (bet bigger); if raising loses, it nudges down (bet smaller). The Q-table decides <em>whether</em> to raise; raise× decides <em>how much</em>.<br><br>
       <strong style="color:var(--text)">The battle runs until one player holds all the chips.</strong> There is no hand limit — play continues until every other player is eliminated (chips = $0). Eliminated players are not dealt cards. Hit STOP at any time to see current standings.<br><br>
       <strong style="color:var(--text)">Blinds escalate every 50 hands</strong> — starting at 100/200 and doubling each level (200/400 → 400/800 → 800/1,600 … no cap). This forces short stacks into push-or-fold territory and guarantees the battle ends in a reasonable number of hands. The current blind level is shown live in the hand counter.<br><br>
+      <strong style="color:var(--text)">Late game: luck overtakes strategy.</strong> Once blinds reach 3,200/6,400+ and stacks are around 50K, players are down to 7–8 big blinds — push-or-fold territory. Multi-street strategy collapses: pot sizes are always "large" relative to stacks, so the variety built up during training becomes mostly irrelevant. With short stacks, hands often go all-in preflop and play themselves — a 60/40 edge still loses 40% of the time, so one bad flip can eliminate a player who played perfectly. Strategy wins over many battles; any single battle can be decided by a coin flip at the final table.<br><br>
       <strong style="color:var(--text)">Live Strategy</strong> updates during the battle — watch each player's strategy grid fill in as they learn. Rows are streets (Pre-flop → River), columns are hand strength (Wk · Fr · Md · Gd · St). <span style="color:var(--loss)">F</span>=Fold, <span style="color:var(--win)">C</span>=Call, <span style="color:var(--gold)">R</span>=Raise. Dots (·) are states not yet visited.<br><br>
       <strong style="color:var(--text)">Results screen</strong> shows This Battle standings, All Battles running totals, the chip evolution chart, and each player's learned strategy grid.
     </div>
