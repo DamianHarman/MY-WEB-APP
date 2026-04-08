@@ -3202,6 +3202,29 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
       `</div>`
     : '';
 
+  const defaultPot  = guideBoard.length <= 3 ? 6 : guideBoard.length === 4 ? 12 : 24;
+  const defaultCall = Math.round(defaultPot / 2);
+  const potOddsHtml = equity !== null ? `
+    <div style="margin-top:14px;padding:10px 12px;background:var(--panel2);border-radius:8px;border-left:2px solid var(--gold)">
+      <div style="font-size:0.68rem;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Pot Odds · 100bb stacks</div>
+      <div style="font-size:0.63rem;color:var(--muted);margin-bottom:10px">Call ÷ (Pot + Call) = minimum equity to break even</div>
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:0.63rem;color:var(--muted);margin-bottom:4px">Pot size (bb)</div>
+          <input id="guidePotSize" type="number" value="${defaultPot}" min="0.5" max="200" step="0.5"
+            oninput="updateGuidePotOdds(${equity})"
+            style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--text);font-size:0.85rem;text-align:center;box-sizing:border-box">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:0.63rem;color:var(--muted);margin-bottom:4px">Bet to call (bb)</div>
+          <input id="guideCallSize" type="number" value="${defaultCall}" min="0.5" max="200" step="0.5"
+            oninput="updateGuidePotOdds(${equity})"
+            style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--text);font-size:0.85rem;text-align:center;box-sizing:border-box">
+        </div>
+      </div>
+      <div id="guidePotOddsResult"></div>
+    </div>` : '';
+
   el.innerHTML = `
     ${equityHtml}
     <div class="guide-advice-hand">${handName}${texture ? ` <span class="guide-tier-lbl">· Board: ${texture}</span>` : ''}</div>
@@ -3210,8 +3233,48 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
     </div>
     <div class="guide-advice-text">${explanation}</div>
     ${outCardsHtml}
+    ${potOddsHtml}
   `;
   el.style.display = 'block';
+  if (equity !== null) updateGuidePotOdds(equity);
+}
+
+function updateGuidePotOdds(equity) {
+  const pot  = parseFloat(document.getElementById('guidePotSize')?.value)  || 0;
+  const call = parseFloat(document.getElementById('guideCallSize')?.value) || 0;
+  const el   = document.getElementById('guidePotOddsResult');
+  if (!el || pot <= 0 || call <= 0) return;
+  const needed = Math.round(call / (pot + call) * 100);
+  const ratio  = (pot / call).toFixed(1);
+  const ok     = equity >= needed;
+  const impliedNote = (!ok && guideBoard.length < 5)
+    ? `<div style="font-size:0.62rem;color:var(--muted);margin-top:4px">Implied odds may justify calling if draws complete — see outs above.</div>` : '';
+  el.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="text-align:center;min-width:56px">
+        <div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Pot odds</div>
+        <div style="font-size:1.05rem;font-weight:800;color:var(--text)">${needed}%</div>
+        <div style="font-size:0.62rem;color:var(--muted)">${ratio}:1</div>
+      </div>
+      <div style="text-align:center;min-width:56px">
+        <div style="font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Your equity</div>
+        <div style="font-size:1.05rem;font-weight:800;color:${equity >= 50 ? 'var(--win)' : 'var(--loss)'}">${equity}%</div>
+      </div>
+      <div style="flex:1;min-width:120px;padding:8px 10px;border-radius:6px;
+        background:${ok ? 'rgba(80,200,120,0.10)' : 'rgba(200,80,80,0.10)'};
+        border:1px solid ${ok ? 'var(--win)' : 'var(--loss)'}">
+        <div style="font-size:0.8rem;font-weight:800;color:${ok ? 'var(--win)' : 'var(--loss)'}">
+          ${ok ? '✓ PROFITABLE CALL' : '✗ NOT PROFITABLE'}
+        </div>
+        <div style="font-size:0.63rem;color:var(--muted);margin-top:3px">
+          ${ok
+            ? `Your ${equity}% equity beats the ${needed}% needed`
+            : `Need ${needed}% equity — you have ${equity}%`}
+        </div>
+        ${impliedNote}
+      </div>
+    </div>
+  `;
 }
 
 function newGuideHand() {
@@ -5351,14 +5414,7 @@ function showBattleResults() {
   <div class="panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span id="battleHandNum" style="font-size:0.9rem;font-weight:700;color:var(--gold);letter-spacing:1px">Hand 0 / 100</span>
-      <div style="display:flex;gap:8px">
-        <button id="btlPauseBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="pauseBattle()">PAUSE</button>
-        <button id="btlStopBtn" class="btn-outline" style="width:auto;padding:8px 14px;min-height:44px;font-size:0.78rem" onclick="stopBattle()">STOP</button>
-      </div>
-    </div>
-    <div id="btlPauseControls" style="display:none;gap:8px;margin-bottom:14px">
-      <button id="btlPauseStepBtn" class="btn btn-gold" style="flex:1;min-height:44px;font-size:0.82rem" onclick="stepBattleHand()">STEP HAND ▶</button>
-      <button class="btn-outline" style="flex:1;min-height:44px;font-size:0.82rem" onclick="resumeBattle()">RESUME ▷▷</button>
+      <button id="btlStopBtn" class="btn-outline" style="display:inline-block;width:auto;padding:5px 12px;min-height:0;font-size:0.72rem" onclick="stopBattle()">STOP</button>
     </div>
 
     <div class="section-lbl">Fixed Community Cards</div>
@@ -5370,6 +5426,15 @@ function showBattleResults() {
 
     <div style="color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">Action Log</div>
     <div id="battleLog" style="font-size:0.72rem;color:var(--muted);line-height:1.8;max-height:120px;overflow-y:auto;font-family:monospace;background:var(--panel2);padding:8px 10px;border-radius:8px"></div>
+
+    <div style="display:flex;gap:6px;align-items:center;margin-top:8px">
+      <button id="btlPauseBtn" class="btn-outline" style="display:inline-block;width:auto;padding:5px 12px;min-height:0;font-size:0.72rem" onclick="pauseBattle()">PAUSE</button>
+      <div id="btlPauseControls" style="display:none;gap:6px;flex:1">
+        <button id="btlPauseStepBtn" class="btn btn-gold" style="flex:1;padding:5px 12px;min-height:0;font-size:0.72rem" onclick="stepBattleHand()">STEP ▶</button>
+        <button class="btn-outline" style="display:inline-block;width:auto;flex:1;padding:5px 12px;min-height:0;font-size:0.72rem" onclick="resumeBattle()">RESUME ▷▷</button>
+      </div>
+    </div>
+
     <div id="battleLiveStrategy" style="margin-top:14px"></div>
     <div id="battleChipChart" style="margin-top:14px"></div>
     <div id="btlStepBtns" style="display:none;gap:10px;margin-top:14px">
