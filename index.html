@@ -934,12 +934,32 @@
 </div>
 
 <!-- ── Setup ─────────────────────────────────────────────────────────────── -->
-<div id="setupScreen" class="screen active">
+<!-- ── Home / Landing ──────────────────────────────────────────────────────── -->
+<div id="homeScreen" class="screen active">
   <h1>POKER SIM</h1>
   <p class="subtitle">Monte Carlo · Texas Hold'em</p>
-  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:18px">v40</p>
+  <p style="text-align:center;color:var(--muted);font-size:0.68rem;letter-spacing:1.5px;margin-top:-18px;margin-bottom:28px">v41</p>
+
+  <div class="panel" style="display:flex;flex-direction:column;gap:12px;padding:24px 20px">
+    <button class="btn btn-gold" style="font-size:1rem;padding:16px" onclick="showScreen('setupScreen')">1 · ODDS TUTOR</button>
+    <button class="btn btn-outline" style="font-size:1rem;padding:16px" onclick="startGuide()">2 · HAND PLAY GUIDE</button>
+    <button class="btn btn-outline" style="font-size:1rem;padding:16px" onclick="goBattleSetup()">3 · AI BATTLE</button>
+    <button class="btn btn-outline" style="font-size:0.72rem;padding:10px;border-color:var(--muted);color:var(--muted)" onclick="showScreen('whatsNewScreen')">WHAT'S NEW</button>
+  </div>
+</div>
+
+<!-- ── Odds Tutor (formerly setup) ────────────────────────────────────────── -->
+<div id="setupScreen" class="screen">
+  <h1>POKER SIM</h1>
+  <p class="subtitle">Odds Tutor</p>
 
   <div class="panel">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goHome()">← BACK</button>
+      <span style="font-size:0.8rem;font-weight:700;color:var(--muted);letter-spacing:2px">ODDS TUTOR</span>
+      <div style="width:80px"></div>
+    </div>
 
     <div class="form-group">
       <label class="form-lbl">Iterations</label>
@@ -1136,10 +1156,6 @@
       <button class="btn btn-gold" onclick="startSim()">DEAL &amp; SIMULATE</button>
       <button class="btn-outline"  onclick="showLeaderboard()">LEADERBOARD</button>
     </div>
-    <button class="btn btn-outline" style="margin-top:10px" onclick="quickSim()">QUICK SIM · 100K</button>
-    <button class="btn btn-outline" style="margin-top:10px" onclick="startGuide()">HAND PLAY GUIDE</button>
-    <button class="btn btn-outline" style="margin-top:10px" onclick="goBattleSetup()">AI BATTLE</button>
-    <button class="btn btn-outline" style="margin-top:10px;border-color:var(--muted);color:var(--muted);font-size:0.72rem" onclick="showScreen('whatsNewScreen')">WHAT'S NEW</button>
   </div>
 </div>
 
@@ -1149,7 +1165,7 @@
   <p class="subtitle">What's New</p>
   <div class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goSetup()">← BACK</button>
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goHome()">← BACK</button>
       <span style="font-size:0.8rem;font-weight:700;color:var(--muted);letter-spacing:2px">CHANGELOG</span>
       <div style="width:80px"></div>
     </div>
@@ -1158,18 +1174,19 @@
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v40</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:800;letter-spacing:1px">v41</span>
           <span style="color:var(--muted);font-size:0.68rem">Current</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Strategy Comparison:</strong> results now include a cross-player analysis table (Raise%, Fold%, PF/River aggression, bluff rate, VPIP) with narrative insights comparing how each player's style differs and why the winner won.</li>
-          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — Pause shows full hand log:</strong> pausing now expands the action log to show the complete last hand from blind posts to final action, with scrolling.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">New landing page:</strong> home screen with menu — Odds Tutor, Hand Play Guide, AI Battle.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Hand Play Guide — Turn &amp; River:</strong> now shows full board cards (all 4 or 5) matching the Flop display style; equity, pot odds, and advice all work independently per street.</li>
+          <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Odds Tutor:</strong> results page cleaned up — history section removed, Home and Back navigation added.</li>
         </ul>
       </div>
 
       <div>
         <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
-          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v39</span>
+          <span style="color:var(--muted);font-size:0.8rem;font-weight:800;letter-spacing:1px">v40</span>
         </div>
         <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px">
           <li style="font-size:0.78rem;color:var(--text);padding:6px 10px;background:rgba(255,255,255,0.03);border-left:2px solid var(--gold);border-radius:0 5px 5px 0;line-height:1.5"><strong style="color:var(--gold)">Battle — VPIP:</strong> results now show each player's VPIP (Voluntarily Put money In Pot) — the % of hands they called or raised preflop, a key measure of playing style.</li>
@@ -1334,21 +1351,18 @@
 
     <div id="lbRank" style="display:none;text-align:center;color:var(--gold);font-size:0.78rem;font-weight:700;letter-spacing:1px;margin:14px 0 4px;line-height:1.7"></div>
 
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goHome()">⌂ HOME</button>
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goSetup()">← BACK</button>
+    </div>
     <div class="btn-row">
-      <button class="btn btn-gold"  onclick="goSetup()">BACK / RUN AGAIN</button>
+      <button class="btn btn-gold"  onclick="goSetup()">RUN AGAIN</button>
       <button class="btn-outline"   onclick="copyResult()">COPY</button>
       <button class="btn-outline"   onclick="showLeaderboard()">LEADERBOARD</button>
       <button class="btn-outline"   onclick="showAnalysis()">WIN/LOSS ANALYSIS</button>
     </div>
   </div>
 
-  <div class="history-wrap">
-    <div class="history-header">
-      <span class="history-title">History</span>
-      <button class="btn-clear" onclick="clearHistory()">Clear all</button>
-    </div>
-    <div id="historyList" class="history-list"></div>
-  </div>
 </div>
 
 <!-- ── Win/Loss Analysis ────────────────────────────────────────────────────── -->
@@ -1453,7 +1467,7 @@
 
     <!-- Header row -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goSetup()">← BACK</button>
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goHome()">← BACK</button>
       <span style="font-size:0.8rem;font-weight:700;color:var(--muted);letter-spacing:2px">STREET GUIDE</span>
       <div style="width:80px"></div>
     </div>
@@ -1860,15 +1874,8 @@ function pickIter(btn, val) {
   localStorage.setItem('pokerSimLastIter', val);
 }
 
-function quickSim() {
-  totalIter = 100000;
-  document.querySelectorAll('#iterChips .chip').forEach(b =>
-    b.classList.toggle('on', b.getAttribute('onclick').includes('100000'))
-  );
-  startSim();
-}
-
 function goSetup() { showScreen('setupScreen'); }
+function goHome()  { showScreen('homeScreen'); }
 function goBattleSetup() {
   document.getElementById('resetLearningBtn').style.display = btlPlayerMemory.some(m => m) ? '' : 'none';
   showScreen('battleSetupScreen');
@@ -2226,6 +2233,7 @@ function fmtIter(n) {
 function renderHistory() {
   const hist = loadHistory();
   const list = document.getElementById('historyList');
+  if (!list) return;
   if (hist.length === 0) {
     list.innerHTML = '<div class="hist-empty">No runs recorded yet</div>';
     return;
@@ -2949,7 +2957,7 @@ function showGuideTurn() {
     area.style.display = 'none';
     const card = guideDeck.pop();
     guideBoard.push(card);
-    renderCards('guideTurnCardsDisplay', [card]);
+    renderCards('guideTurnCardsDisplay', guideBoard.slice(0, 4));
     renderGuideStreetAdvice('guideTurnAdvice', false);
     document.getElementById('guideDealRiverBtn').style.display = 'block';
   }
@@ -2963,7 +2971,7 @@ function confirmGuideTurn() {
   if (idx !== -1) guideDeck.splice(idx, 1);
   guideBoard.push(c);
   document.getElementById('guideTurnPickerArea').style.display = 'none';
-  renderCards('guideTurnCardsDisplay', [c]);
+  renderCards('guideTurnCardsDisplay', guideBoard.slice(0, 4));
   renderGuideStreetAdvice('guideTurnAdvice', false);
   document.getElementById('guideDealRiverBtn').style.display = 'block';
 }
@@ -2983,7 +2991,7 @@ function showGuideRiver() {
     area.style.display = 'none';
     const card = guideDeck.pop();
     guideBoard.push(card);
-    renderCards('guideRiverCardsDisplay', [card]);
+    renderCards('guideRiverCardsDisplay', guideBoard.slice(0, 5));
     renderGuideStreetAdvice('guideRiverAdvice', true);
     document.getElementById('guideNewHandBtn').style.display = 'block';
   }
@@ -2997,7 +3005,7 @@ function confirmGuideRiver() {
   if (idx !== -1) guideDeck.splice(idx, 1);
   guideBoard.push(c);
   document.getElementById('guideRiverPickerArea').style.display = 'none';
-  renderCards('guideRiverCardsDisplay', [c]);
+  renderCards('guideRiverCardsDisplay', guideBoard.slice(0, 5));
   renderGuideStreetAdvice('guideRiverAdvice', true);
   document.getElementById('guideNewHandBtn').style.display = 'block';
 }
@@ -3204,6 +3212,9 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
 
   const defaultPot  = guideBoard.length <= 3 ? 6 : guideBoard.length === 4 ? 12 : 24;
   const defaultCall = Math.round(defaultPot / 2);
+  const potId  = `guidePotSize_${adviceId}`;
+  const callId = `guideCallSize_${adviceId}`;
+  const resId  = `guidePotOddsResult_${adviceId}`;
   const potOddsHtml = equity !== null ? `
     <div style="margin-top:14px;padding:10px 12px;background:var(--panel2);border-radius:8px;border-left:2px solid var(--gold)">
       <div style="font-size:0.68rem;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Pot Odds · 100bb stacks</div>
@@ -3211,18 +3222,18 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
       <div style="display:flex;gap:10px;margin-bottom:8px">
         <div style="flex:1">
           <div style="font-size:0.63rem;color:var(--muted);margin-bottom:4px">Pot size (bb)</div>
-          <input id="guidePotSize" type="number" value="${defaultPot}" min="0.5" max="200" step="0.5"
-            oninput="updateGuidePotOdds(${equity})"
+          <input id="${potId}" type="number" value="${defaultPot}" min="0.5" max="200" step="0.5"
+            oninput="updateGuidePotOdds(${equity},'${adviceId}')"
             style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--text);font-size:0.85rem;text-align:center;box-sizing:border-box">
         </div>
         <div style="flex:1">
           <div style="font-size:0.63rem;color:var(--muted);margin-bottom:4px">Bet to call (bb)</div>
-          <input id="guideCallSize" type="number" value="${defaultCall}" min="0.5" max="200" step="0.5"
-            oninput="updateGuidePotOdds(${equity})"
+          <input id="${callId}" type="number" value="${defaultCall}" min="0.5" max="200" step="0.5"
+            oninput="updateGuidePotOdds(${equity},'${adviceId}')"
             style="width:100%;padding:6px 8px;background:var(--bg);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:var(--text);font-size:0.85rem;text-align:center;box-sizing:border-box">
         </div>
       </div>
-      <div id="guidePotOddsResult"></div>
+      <div id="${resId}"></div>
     </div>` : '';
 
   el.innerHTML = `
@@ -3236,13 +3247,13 @@ function renderGuideStreetAdvice(adviceId, isRiver) {
     ${potOddsHtml}
   `;
   el.style.display = 'block';
-  if (equity !== null) updateGuidePotOdds(equity);
+  if (equity !== null) updateGuidePotOdds(equity, adviceId);
 }
 
-function updateGuidePotOdds(equity) {
-  const pot  = parseFloat(document.getElementById('guidePotSize')?.value)  || 0;
-  const call = parseFloat(document.getElementById('guideCallSize')?.value) || 0;
-  const el   = document.getElementById('guidePotOddsResult');
+function updateGuidePotOdds(equity, adviceId) {
+  const pot  = parseFloat(document.getElementById(`guidePotSize_${adviceId}`)?.value)  || 0;
+  const call = parseFloat(document.getElementById(`guideCallSize_${adviceId}`)?.value) || 0;
+  const el   = document.getElementById(`guidePotOddsResult_${adviceId}`);
   if (!el || pot <= 0 || call <= 0) return;
   const needed = Math.round(call / (pot + call) * 100);
   const ratio  = (pot / call).toFixed(1);
@@ -5291,7 +5302,7 @@ function showBattleResults() {
 
   <div class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goSetup()">← BACK</button>
+      <button class="btn-outline" style="width:auto;padding:8px 16px;min-height:44px;font-size:0.82rem" onclick="goHome()">← BACK</button>
       <span style="font-size:0.8rem;font-weight:700;color:var(--muted);letter-spacing:2px">AI BATTLE</span>
       <div style="width:80px"></div>
     </div>
@@ -5453,7 +5464,7 @@ function showBattleResults() {
     <div id="battleResultBody"></div>
 
     <button class="btn btn-gold"     style="margin-top:20px"  onclick="goBattleSetup()">PLAY AGAIN</button>
-    <button class="btn btn-outline"  style="margin-top:10px"  onclick="goSetup()">MAIN MENU</button>
+    <button class="btn btn-outline"  style="margin-top:10px"  onclick="goHome()">MAIN MENU</button>
   </div>
 </div>
 
